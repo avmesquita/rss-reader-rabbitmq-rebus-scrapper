@@ -30,7 +30,7 @@ jobs:
             dockerfile: src/RssReader.Worker/Dockerfile
           - name: frontend
             context: frontend
-            dockerfile: Dockerfile
+            dockerfile: frontend/Dockerfile
 
     steps:
       - name: Checkout
