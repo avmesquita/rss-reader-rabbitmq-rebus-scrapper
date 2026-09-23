@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RssReader.Api/RssReader.Api.csproj" />
+    <Project Path="src/RssReader.Contracts/RssReader.Contracts.csproj" />
+    <Project Path="src/RssReader.Worker/RssReader.Worker.csproj" />
+  </Folder>
+</Solution>

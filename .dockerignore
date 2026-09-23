@@ -1,0 +1,6 @@
+**/bin
+**/obj
+frontend/node_modules
+.git
+user_data
+user_scripts

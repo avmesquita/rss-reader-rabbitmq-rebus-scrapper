@@ -1,0 +1,41 @@
+{
+  "name": "RSS Reader",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0-bookworm",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    }
+  },
+  "forwardPorts": [
+    6660,
+    6661,
+    6662,
+    6663,
+    6664,
+    6665,
+    7771,
+    7772
+  ],
+  "portsAttributes": {
+    "6660": { "label": "RSS Reader frontend", "onAutoForward": "openBrowser" },
+    "6661": { "label": "RSS Reader API" },
+    "6664": { "label": "RabbitMQ management" }
+  },
+  "postCreateCommand": "dotnet restore RssReader.slnx && npm --prefix frontend ci",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "angular.ng-template",
+        "ms-azuretools.vscode-docker",
+        "github.copilot",
+        "github.copilot-chat"
+      ]
+    }
+  }
+}

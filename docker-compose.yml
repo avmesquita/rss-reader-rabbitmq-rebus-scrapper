@@ -1,0 +1,90 @@
+services:
+  rss_postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports: ["${POSTGRES_HOST_PORT}:${POSTGRES_PORT}"]
+    volumes: [rss_postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rss_pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports: ["${PGADMIN_HOST_PORT}:${PGADMIN_PORT}"]
+    depends_on:
+      rss_postgres: { condition: service_healthy }
+    volumes:
+      - rss_pgadmin_data:/var/lib/pgadmin
+
+  rss_adminer:
+    image: adminer:latest
+    ports: ["${ADMINER_HOST_PORT}:${ADMINER_PORT}"]
+    depends_on:
+      rss_postgres: { condition: service_healthy }
+
+  rss_rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports: ["${RABBITMQ_HOST_PORT}:${RABBITMQ_PORT}", "${RABBITMQ_MANAGEMENT_HOST_PORT}:${RABBITMQ_MANAGEMENT_PORT}"]
+    volumes: [rss_rabbitmq_data:/var/lib/rabbitmq]
+
+  rss_scrapper:
+    image: amerkurev/scrapper:latest
+    ports: ["${SCRAPPER_HOST_PORT}:${SCRAPPER_PORT}"]
+    volumes:
+      - rss_scrapper_user_data:/home/pwuser/user_data
+      - rss_scrapper_user_scripts:/home/pwuser/user_scripts
+
+  rss_api:
+    build:
+      context: .
+      dockerfile: src/RssReader.Api/Dockerfile
+    ports: ["${API_HOST_PORT}:${API_PORT}"]
+    environment:
+      ConnectionStrings__Postgres: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMq__ConnectionString: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}
+      RabbitMq__ManagementUrl: http://${RABBITMQ_HOST}:${RABBITMQ_MANAGEMENT_PORT}
+      RabbitMq__Username: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+      Debug__Enabled: ${DEBUG_ENABLED:-false}
+    depends_on:
+      rss_postgres: { condition: service_healthy }
+      rss_rabbitmq: { condition: service_started }
+
+  rss_worker:
+    build:
+      context: .
+      dockerfile: src/RssReader.Worker/Dockerfile
+    environment:
+      ConnectionStrings__Postgres: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMq__ConnectionString: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}
+      Scrapper__BaseUrl: http://${SCRAPPER_HOST}:${SCRAPPER_PORT}
+      Ingestion__IntervalHours: ${INGESTION_INTERVAL_HOURS:-24}
+      Images__StoreAsBase64: ${STORE_IMAGES_AS_BASE64:-false}
+      Images__MaxBytes: ${IMAGE_MAX_BYTES:-2000000}
+    depends_on:
+      rss_postgres: { condition: service_healthy }
+      rss_rabbitmq: { condition: service_started }
+      rss_scrapper: { condition: service_started }
+
+  frontend:
+    build: ./frontend
+    ports: ["${FRONTEND_HOST_PORT}:${FRONTEND_PORT}"]
+    depends_on: [rss_api]
+
+volumes:
+  rss_postgres_data:
+  rss_scrapper_user_data:
+  rss_scrapper_user_scripts:
+  rss_rabbitmq_data:
+  rss_pgadmin_data:

@@ -1,0 +1,87 @@
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<main>
+  <header>
+    <div><span class="kicker">RSS READER</span><h1>Leituras em movimento.</h1></div>
+    <p>{{ articles.length }} histórias coletadas</p>
+  </header>
+
+  <section class="toolbar">
+    <input [(ngModel)]="search" (keyup.enter)="query()" placeholder="Buscar nas histórias..." />
+    <button (click)="query()">Buscar</button>
+    <select [(ngModel)]="category" aria-label="Filtrar por categoria">
+      @for (item of categories; track item) { <option [value]="item">{{ item }}</option> }
+    </select>
+    <select [(ngModel)]="feedId" (change)="page = 1" aria-label="Filtrar por fonte">
+      <option value="Todas">Todas as fontes</option>
+      @for (feed of feeds; track feed.id) { <option [value]="feed.id">{{ feed.name }}</option> }
+    </select>
+    <select [(ngModel)]="pageSize" (change)="changePageSize()" aria-label="Quantidade por página">
+      @for (size of pageSizes; track size) { <option [ngValue]="size">{{ size }} por página</option> }
+      <option [ngValue]="0">Todas</option>
+    </select>
+    <button class="favorites-filter" [class.active]="favoritesOnly" (click)="favoritesOnly = !favoritesOnly; page = 1" [attr.aria-pressed]="favoritesOnly">★ Favoritos</button>
+  </section>
+
+  <div class="layout">
+    <section class="stories">
+      @for (article of visibleArticles; track article.id) {
+        <article class="story-card" (click)="selectedArticle = article" tabindex="0">
+          @if (imageSource(article); as image) { <img [src]="image" [alt]="''" loading="lazy" /> }
+          <div class="story-body">
+          <div class="story-meta"><span class="date">{{ article.collectedAt | date:'dd MMM yyyy, HH:mm' }}</span><button class="favorite" [class.selected]="article.isFavorite" (click)="toggleFavorite(article, $event)" [attr.aria-label]="article.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'">★</button></div>
+          <span class="category">{{ article.category || 'Geral' }}</span>
+          <h2>{{ article.title }}</h2>
+          <p>{{ article.excerpt || article.contentText || 'Conteúdo extraído pelo scrapper.' }}</p>
+          <span class="read-more">Ler conteúdo extraído <span aria-hidden="true">→</span></span>
+          </div>
+        </article>
+      } @empty { <p class="empty">Nenhuma história coletada ainda.</p> }
+      @if (totalPages > 1) {
+      <nav class="pagination" aria-label="Paginação">
+        <button (click)="goToPage(page - 1)" [disabled]="page === 1" aria-label="Página anterior">←</button>
+        @for (pageNumber of pageNumbers; track pageNumber) {
+          <button [class.active]="page === pageNumber" (click)="goToPage(pageNumber)">{{ pageNumber }}</button>
+        }
+        <button (click)="goToPage(page + 1)" [disabled]="page === totalPages" aria-label="Próxima página">→</button>
+      </nav>
+      }
+    </section>
+
+    <aside>
+      <span class="kicker">NOVO CONCENTRADOR</span>
+      <h2>Adicionar uma fonte</h2>
+      <input [(ngModel)]="feedName" placeholder="Nome da fonte" />
+      <input [(ngModel)]="feedUrl" placeholder="https://exemplo.com/rss.xml" />
+      <button (click)="addFeed()" [disabled]="!feedName || !feedUrl">Adicionar fonte</button>
+      <p class="message">{{ message }}</p>
+      <hr />
+      <span class="kicker">FONTES ATIVAS</span>
+      @for (feed of feeds; track feed.id) { <p class="feed"><span><strong>{{ feed.name }}</strong><small>{{ feed.url }}</small></span><button class="delete-feed" (click)="deleteFeed(feed, $event)" aria-label="Excluir fonte">×</button></p> }
+    </aside>
+  </div>
+</main>
+
+@if (debug; as diagnostics) {
+  <section class="debug-panel">
+    <div class="debug-heading"><span class="kicker">DEBUG</span><strong>Operação</strong><small>Atualizado {{ diagnostics.generatedAt | date:'HH:mm:ss' }}</small></div>
+    <div class="debug-grid">
+      <div><span class="kicker">API</span><strong class="status-ok">{{ diagnostics.api.status }}</strong><span>{{ diagnostics.api.recentErrors.length }} erros recentes</span></div>
+      <div><span class="kicker">RABBITMQ</span><strong [class.status-ok]="diagnostics.rabbit.available" [class.status-bad]="!diagnostics.rabbit.available">{{ diagnostics.rabbit.available ? 'conectado' : 'indisponível' }}</strong><span>{{ diagnostics.rabbit.errorQueues.length }} filas de erro</span></div>
+      @for (queue of diagnostics.rabbit.errorQueues; track queue.name) { <div><strong>{{ queue.name }}</strong><span>{{ queue.messages }} mensagens · {{ queue.consumers }} consumidores</span></div> }
+    </div>
+    @if (diagnostics.api.recentErrors.length) { <div class="debug-errors"><span class="kicker">ERROS DA API</span>@for (error of diagnostics.api.recentErrors; track error.occurredAt) { <p><strong>{{ error.method }} {{ error.path }}</strong> {{ error.message }}</p> }</div> }
+  </section>
+}
+
+@if (selectedArticle; as article) {
+  <div class="modal-backdrop" (click)="selectedArticle = null">
+    <section class="modal" role="dialog" aria-modal="true" [attr.aria-label]="article.title" (click)="$event.stopPropagation()">
+      <button class="close" (click)="selectedArticle = null" aria-label="Fechar leitura">×</button>
+      <span class="kicker">{{ article.category || 'GERAL' }}</span>
+      <h2>{{ article.title }}</h2>
+      <p class="modal-meta">Coletado em {{ article.collectedAt | date:'dd MMM yyyy, HH:mm' }}</p>
+      <div class="content">{{ article.contentText || article.excerpt || 'O scrapper não retornou texto para esta notícia.' }}</div>
+      <a class="source" [href]="article.url" target="_blank" rel="noopener">Abrir notícia na fonte <span aria-hidden="true">↗</span></a>
+    </section>
+  </div>
+}
