@@ -1,11 +1,20 @@
 # RSS Reader
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main)
-[![CI](https://github.com/avmesquita/rss/actions/workflows/ci.yml/badge.svg)](https://github.com/avmesquita/rss/actions/workflows/ci.yml)
-[![Pages](https://github.com/avmesquita/rss/actions/workflows/pages.yml/badge.svg)](https://github.com/avmesquita/rss/actions/workflows/pages.yml)
-[![Docker Images](https://github.com/avmesquita/rss/actions/workflows/docker.yml/badge.svg)](https://github.com/avmesquita/rss/actions/workflows/docker.yml)
+
+[![CI](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml)
+
+[![Docker Images](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/docker.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/docker.yml)
+
+[![Pages](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/pages.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/pages.yml)
+
+---
 
 Arquitetura modular para coletar artigos RSS com Rebus/RabbitMQ, extrair conteúdo pelo `amerkurev/scrapper`, persistir no PostgreSQL e consultar pelo Angular.
+
+## Screenshot
+
+<img width="1479" height="928" alt="image" src="https://github.com/user-attachments/assets/1c4810a8-2f2a-4838-ba5f-cd7ca865720c" />
 
 ## Executar
 
