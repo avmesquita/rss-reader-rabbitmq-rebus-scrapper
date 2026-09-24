@@ -27,7 +27,7 @@ public class Worker(
                 logger.LogError(exception, "Falha ao agendar a checagem das fontes.");
             }
 
-            var intervalHours = Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 24);
+            var intervalHours = Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2);
             await Task.Delay(TimeSpan.FromHours(intervalHours), stoppingToken);
         }
     }
@@ -35,9 +35,13 @@ public class Worker(
     private async Task EnqueueActiveFeeds(CancellationToken cancellationToken)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var feeds = await db.Feeds.Where(feed => feed.IsActive).AsNoTracking().ToListAsync(cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+        var feeds = await db.Feeds
+            .Where(feed => feed.IsActive && (feed.NextScheduledAt == null || feed.NextScheduledAt <= now))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
         foreach (var feed in feeds)
-            await bus.Send(new IngestFeedCommand(feed.Id, feed.Url));
+            await bus.Send(new IngestFeedCommand(feed.Id, feed.Url, Guid.NewGuid()));
 
         logger.LogInformation("{Count} fontes ativas enviadas para checagem.", feeds.Count);
     }

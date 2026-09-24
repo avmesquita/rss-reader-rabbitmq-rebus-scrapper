@@ -9,6 +9,10 @@ public sealed class Feed
     public required string Url { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTimeOffset? LastCheckedAt { get; set; }
+    public DateTimeOffset? NextScheduledAt { get; set; }
+    public string? LastError { get; set; }
+    public int LastCollectedCount { get; set; }
 }
 
 public sealed class Article
@@ -26,14 +30,41 @@ public sealed class Article
     public string? ImageMimeType { get; set; }
     public string? Category { get; set; }
     public bool IsFavorite { get; set; }
+    public bool IsHidden { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset CollectedAt { get; set; }
+}
+
+public sealed class FeedIngestionRun
+{
+    public Guid Id { get; set; }
+    public Guid FeedId { get; set; }
+    public DateTimeOffset StartedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+    public string Status { get; set; } = "Running";
+    public int ItemCount { get; set; }
+    public int PersistedCount { get; set; }
+    public int ErrorCount { get; set; }
+    public string? Error { get; set; }
+}
+
+public sealed class FeedIngestionError
+{
+    public long Id { get; set; }
+    public Guid RunId { get; set; }
+    public Guid FeedId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public string Stage { get; set; } = "Unknown";
+    public string? ArticleUrl { get; set; }
+    public required string Message { get; set; }
 }
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Feed> Feeds => Set<Feed>();
     public DbSet<Article> Articles => Set<Article>();
+    public DbSet<FeedIngestionRun> IngestionRuns => Set<FeedIngestionRun>();
+    public DbSet<FeedIngestionError> IngestionErrors => Set<FeedIngestionError>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +73,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Article>().HasKey(article => article.Id);
         modelBuilder.Entity<Article>().HasIndex(article => article.CollectedAt);
         modelBuilder.Entity<Article>().HasOne<Feed>().WithMany().HasForeignKey(article => article.FeedId);
+        modelBuilder.Entity<FeedIngestionRun>().HasKey(run => run.Id);
+        modelBuilder.Entity<FeedIngestionRun>().HasIndex(run => new { run.FeedId, run.StartedAt });
+        modelBuilder.Entity<FeedIngestionError>().HasKey(error => error.Id);
+        modelBuilder.Entity<FeedIngestionError>().HasIndex(error => new { error.FeedId, error.CreatedAt });
         // Articles intentionally have no unique index: repeated content must be retained.
     }
 }

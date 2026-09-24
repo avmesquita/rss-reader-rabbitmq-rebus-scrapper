@@ -28,9 +28,13 @@ A API cadastra um concentrador em `POST /api/feeds`. O comando é publicado no R
 
 A tabela `Articles` usa somente chave técnica e índice de data. Não há índice único por URL, título, GUID ou conteúdo: execuções repetidas preservam todas as ocorrências.
 
-O worker agenda uma nova leitura de todas as fontes ativas imediatamente ao iniciar e depois a cada 24 horas. O intervalo pode ser alterado com `INGESTION_INTERVAL_HOURS` no `.env`.
+A consulta de notícias usa paginação no servidor para evitar carregar todas as imagens e conteúdos de uma vez. A página inicial exibe 10 itens; também estão disponíveis 25, 50 e 100 itens por página. Busca, categoria, fonte e favoritos são aplicados antes da paginação.
 
-Para habilitar o painel operacional no frontend, defina `DEBUG_ENABLED=true`. A API passa a expor `/api/debug`, que consulta as filas de erro/dead-letter no endpoint de gerenciamento do RabbitMQ e mantém os 50 erros mais recentes da API em memória. Deixe essa opção desativada em ambientes públicos.
+O worker agenda uma nova leitura das fontes ativas imediatamente ao iniciar e depois, por padrão, a cada 2 horas. Cada fonte também respeita `NextScheduledAt`, evitando leituras duplicadas. O intervalo pode ser alterado com `INGESTION_INTERVAL_HOURS` no `.env`. O consumo do scraper começa com um worker e paralelismo 1; ajuste `INGESTION_WORKERS` e `SCRAPPER_MAX_PARALLELISM` somente se a instância suportar mais carga. O dashboard permite forçar uma leitura por fonte, com intervalo mínimo de 30 minutos.
+
+A consulta de notícias permite ordenar pela data de publicação ou de coleta e limitar o período às últimas 24 horas, 7 dias ou 30 dias.
+
+Para habilitar o painel operacional no frontend, defina `DEBUG_ENABLED=true`. A API passa a expor `/api/debug`, que consulta as filas de erro/dead-letter no endpoint de gerenciamento do RabbitMQ e mantém os 50 erros mais recentes da API em memória. Deixe essa opção desativada em ambientes públicos. A API publica em `RABBITMQ_WORKER_QUEUE` e o Worker é o único consumidor dessa fila; mensagens antigas na fila `error` precisam ser reprocessadas ou removidas pelo RabbitMQ Management após a atualização.
 
 ## Fluxos
 
@@ -108,3 +112,12 @@ Imagens publicadas:
 - `avmesquita/rss-reader-api`
 - `avmesquita/rss-reader-worker`
 - `avmesquita/rss-reader-frontend`
+
+Para publicar uma versão, crie e envie uma tag semântica no formato `vMAJOR.MINOR.PATCH`:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+O workflow publica as três imagens com as tags `1.0.0`, `1.0`, `1` e uma tag baseada no commit. A tag `latest` continua sendo atualizada somente pela branch padrão.
