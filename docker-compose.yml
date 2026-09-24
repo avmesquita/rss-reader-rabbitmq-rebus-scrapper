@@ -54,6 +54,7 @@ services:
       ConnectionStrings__Postgres: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       RabbitMq__ConnectionString: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}
       RabbitMq__WorkerQueue: ${RABBITMQ_WORKER_QUEUE:-rss-reader-worker}
+      RabbitMq__ArticleQueue: ${RABBITMQ_ARTICLE_QUEUE:-rss-reader-article-worker}
       RabbitMq__ManagementUrl: http://${RABBITMQ_HOST}:${RABBITMQ_MANAGEMENT_PORT}
       RabbitMq__Username: ${RABBITMQ_USER}
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
@@ -71,9 +72,33 @@ services:
       RabbitMq__ConnectionString: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}
       RabbitMq__WorkerQueue: ${RABBITMQ_WORKER_QUEUE:-rss-reader-worker}
       Scrapper__BaseUrl: http://${SCRAPPER_HOST}:${SCRAPPER_PORT}
+      Scrapper__MaxConcurrency: ${SCRAPPER_MAX_PARALLELISM:-1}
       Ingestion__IntervalHours: ${INGESTION_INTERVAL_HOURS:-2}
+      Ingestion__SchedulerEnabled: ${INGESTION_SCHEDULER_ENABLED:-true}
       Ingestion__Workers: ${INGESTION_WORKERS:-1}
       Ingestion__MaxParallelism: ${SCRAPPER_MAX_PARALLELISM:-2}
+      Images__StoreAsBase64: ${STORE_IMAGES_AS_BASE64:-false}
+      Images__MaxBytes: ${IMAGE_MAX_BYTES:-2000000}
+    depends_on:
+      rss_postgres: { condition: service_healthy }
+      rss_rabbitmq: { condition: service_started }
+      rss_scrapper: { condition: service_started }
+
+  rss_article_worker:
+    build:
+      context: .
+      dockerfile: src/RssReader.Worker/Dockerfile
+    environment:
+      ConnectionStrings__Postgres: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      RabbitMq__ConnectionString: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}
+      RabbitMq__WorkerQueue: ${RABBITMQ_ARTICLE_QUEUE:-rss-reader-article-worker}
+      RabbitMq__ArticleQueue: ${RABBITMQ_ARTICLE_QUEUE:-rss-reader-article-worker}
+      Scrapper__BaseUrl: http://${SCRAPPER_HOST}:${SCRAPPER_PORT}
+      Scrapper__MaxConcurrency: ${SCRAPPER_MAX_PARALLELISM:-1}
+      Ingestion__IntervalHours: ${INGESTION_INTERVAL_HOURS:-2}
+      Ingestion__SchedulerEnabled: false
+      Ingestion__Workers: ${ARTICLE_WORKERS:-1}
+      Ingestion__MaxParallelism: ${SCRAPPER_MAX_PARALLELISM:-1}
       Images__StoreAsBase64: ${STORE_IMAGES_AS_BASE64:-false}
       Images__MaxBytes: ${IMAGE_MAX_BYTES:-2000000}
     depends_on:

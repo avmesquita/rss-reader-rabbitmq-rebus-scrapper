@@ -5,53 +5,61 @@ using System.Text.Json.Serialization;
 
 namespace RssReader.Worker;
 
-public sealed class ScrapperClient(HttpClient httpClient, IConfiguration configuration, ILogger<ScrapperClient> logger)
+public sealed class ScrapperClient(HttpClient httpClient, IConfiguration configuration, ILogger<ScrapperClient> logger, ScrapperConcurrencyGate concurrencyGate)
 {
     public async Task<ScrappedArticle?> ExtractAsync(string url, string? fallbackImageUrl, CancellationToken cancellationToken)
     {
         var endpoint = configuration["Scrapper:BaseUrl"] ?? "http://scrapper:3000";
-        logger.LogInformation("Scrapper iniciando extração de {ArticleUrl}.", url);
-        var response = await httpClient.GetFromJsonAsync<ScrapperResponse>(
-            $"{endpoint.TrimEnd('/')}/api/article?url={Uri.EscapeDataString(url)}&cache=false",
-            cancellationToken);
-        if (response is null)
+        await concurrencyGate.EnterAsync(url, logger, cancellationToken);
+        try
         {
-            logger.LogWarning("Scrapper retornou resposta vazia para {ArticleUrl}.", url);
-            return null;
+            logger.LogInformation("Scrapper iniciando extração de {ArticleUrl}.", url);
+            var response = await httpClient.GetFromJsonAsync<ScrapperResponse>(
+                $"{endpoint.TrimEnd('/')}/api/article?url={Uri.EscapeDataString(url)}&cache=false",
+                cancellationToken);
+            if (response is null)
+            {
+                logger.LogWarning("Scrapper retornou resposta vazia para {ArticleUrl}.", url);
+                return null;
+            }
+
+            logger.LogInformation("Scrapper retornou dados para {ArticleUrl}: título={HasTitle}, texto={HasText}, imagem={HasImage}.",
+                url,
+                !string.IsNullOrWhiteSpace(response.Title),
+                !string.IsNullOrWhiteSpace(response.TextContent ?? response.Excerpt ?? response.Content),
+                !string.IsNullOrWhiteSpace(response.ImageUrl ?? response.OpenGraphImage ?? response.OgImage ?? response.Image));
+
+            var title = response.Title ?? url;
+            var text = response.TextContent ?? response.Excerpt ?? response.Content;
+            if (IsHumanVerification(title, text))
+            {
+                logger.LogWarning("Scrapper detectou verificação humana para {ArticleUrl}; usando dados do RSS.", url);
+                return null;
+            }
+
+            var imageUrl = response.ImageUrl ?? response.OpenGraphImage ?? response.OgImage ?? response.Image;
+            imageUrl ??= await FindOpenGraphImageAsync(response.Url ?? url, cancellationToken);
+            imageUrl ??= fallbackImageUrl;
+            imageUrl = ResolveUrl(imageUrl, response.Url ?? url);
+            var (imageBase64, imageMimeType) = await DownloadImageAsync(imageUrl, cancellationToken);
+
+            logger.LogInformation("Scrapper concluiu extração de {ArticleUrl}.", url);
+            return new ScrappedArticle(
+                title,
+                response.Url ?? url,
+                response.Byline,
+                response.Excerpt,
+                response.Content,
+                response.TextContent,
+                imageUrl,
+                imageBase64,
+                imageMimeType,
+                response.PublishedTime);
         }
-
-        logger.LogInformation("Scrapper retornou dados para {ArticleUrl}: título={HasTitle}, texto={HasText}, imagem={HasImage}.",
-            url,
-            !string.IsNullOrWhiteSpace(response.Title),
-            !string.IsNullOrWhiteSpace(response.TextContent ?? response.Excerpt ?? response.Content),
-            !string.IsNullOrWhiteSpace(response.ImageUrl ?? response.OpenGraphImage ?? response.OgImage ?? response.Image));
-
-        var title = response.Title ?? url;
-        var text = response.TextContent ?? response.Excerpt ?? response.Content;
-        if (IsHumanVerification(title, text))
+        finally
         {
-            logger.LogWarning("Scrapper detectou verificação humana para {ArticleUrl}; usando dados do RSS.", url);
-            return null;
+            concurrencyGate.Exit(url, logger);
         }
-
-        var imageUrl = response.ImageUrl ?? response.OpenGraphImage ?? response.OgImage ?? response.Image;
-        imageUrl ??= await FindOpenGraphImageAsync(response.Url ?? url, cancellationToken);
-        imageUrl ??= fallbackImageUrl;
-        imageUrl = ResolveUrl(imageUrl, response.Url ?? url);
-        var (imageBase64, imageMimeType) = await DownloadImageAsync(imageUrl, cancellationToken);
-
-        logger.LogInformation("Scrapper concluiu extração de {ArticleUrl}.", url);
-        return new ScrappedArticle(
-            title,
-            response.Url ?? url,
-            response.Byline,
-            response.Excerpt,
-            response.Content,
-            response.TextContent,
-            imageUrl,
-            imageBase64,
-            imageMimeType,
-            response.PublishedTime);
     }
 
     private async Task<string?> FindOpenGraphImageAsync(string url, CancellationToken cancellationToken)

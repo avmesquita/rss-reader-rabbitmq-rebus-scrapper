@@ -8,6 +8,7 @@ using RssReader.Worker;
 var builder = Host.CreateApplicationBuilder(args);
 var configuration = builder.Configuration;
 var workerQueue = configuration["RabbitMq:WorkerQueue"] ?? "rss-reader-worker";
+var articleQueue = configuration["RabbitMq:ArticleQueue"] ?? "rss-reader-article-worker";
 
 builder.Services.AddHttpClient("rss", client =>
 {
@@ -19,12 +20,15 @@ builder.Services.AddHttpClient<ScrapperClient>(client =>
 {
 	client.Timeout = TimeSpan.FromSeconds(45);
 });
+builder.Services.AddSingleton<ScrapperConcurrencyGate>();
 builder.Services.AddPooledDbContextFactory<WorkerDbContext>(options =>
 	options.UseNpgsql(configuration.GetConnectionString("Postgres")));
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddRebus((configure, _) => configure
 	.Transport(transport => transport.UseRabbitMq(configuration["RabbitMq:ConnectionString"]!, workerQueue))
-	.Routing(route => route.TypeBased().Map<IngestFeedCommand>(workerQueue))
+	.Routing(route => route.TypeBased()
+		.Map<IngestFeedCommand>(workerQueue)
+		.Map<ProcessArticleCommand>(articleQueue))
 	.Options(options =>
 	{
 		var workers = Math.Max(1, configuration.GetValue<int?>("Ingestion:Workers") ?? 1);

@@ -16,6 +16,8 @@ public sealed class WorkerDbContext(DbContextOptions<WorkerDbContext> options) :
         modelBuilder.Entity<WorkerArticle>().ToTable("Articles");
         modelBuilder.Entity<WorkerArticle>().HasKey(article => article.Id);
         modelBuilder.Entity<WorkerArticle>().HasIndex(article => article.CollectedAt);
+        modelBuilder.Entity<WorkerArticle>().HasIndex(article => article.UrlHash).IsUnique();
+        modelBuilder.Entity<WorkerArticle>().HasIndex(article => article.TitleHash);
         modelBuilder.Entity<WorkerIngestionRun>().ToTable("IngestionRuns");
         modelBuilder.Entity<WorkerIngestionRun>().HasKey(run => run.Id);
         modelBuilder.Entity<WorkerIngestionError>().ToTable("IngestionErrors");
@@ -41,6 +43,8 @@ public sealed class WorkerArticle
     public Guid FeedId { get; set; }
     public required string Title { get; set; }
     public required string Url { get; set; }
+    public required string UrlHash { get; set; }
+    public required string TitleHash { get; set; }
     public string? Author { get; set; }
     public string? Excerpt { get; set; }
     public string? ContentHtml { get; set; }
@@ -62,6 +66,7 @@ public sealed class WorkerIngestionRun
     public DateTimeOffset? CompletedAt { get; set; }
     public string Status { get; set; } = "Running";
     public int ItemCount { get; set; }
+    public int ProcessedCount { get; set; }
     public int PersistedCount { get; set; }
     public int ErrorCount { get; set; }
     public string? Error { get; set; }

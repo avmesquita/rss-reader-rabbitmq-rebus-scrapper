@@ -1,7 +1,8 @@
+using System.Net;
 using System.ServiceModel.Syndication;
 using System.Xml;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Http;
+using Rebus.Bus;
 using Rebus.Handlers;
 using RssReader.Contracts;
 
@@ -9,8 +10,8 @@ namespace RssReader.Worker;
 
 public sealed class FeedIngestionHandler(
     IHttpClientFactory httpClientFactory,
-    ScrapperClient scrapper,
     IDbContextFactory<WorkerDbContext> dbContextFactory,
+    IBus bus,
     IConfiguration configuration,
     ILogger<FeedIngestionHandler> logger) : IHandleMessages<IngestFeedCommand>
 {
@@ -30,7 +31,8 @@ public sealed class FeedIngestionHandler(
         {
             Id = message.RunId,
             FeedId = message.FeedId,
-            StartedAt = DateTimeOffset.UtcNow
+            StartedAt = DateTimeOffset.UtcNow,
+            Status = "ReadingFeed"
         };
         db.IngestionRuns.Add(run);
         await db.SaveChangesAsync();
@@ -42,103 +44,67 @@ public sealed class FeedIngestionHandler(
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var reader = XmlReader.Create(stream, new XmlReaderSettings { Async = true });
             var feed = SyndicationFeed.Load(reader);
-            var items = feed.Items.ToList();
-            run.ItemCount = items.Count;
-            logger.LogInformation("Feed {FeedId} retornou {Count} itens RSS.", message.FeedId, items.Count);
+            var commands = new List<ProcessArticleCommand>();
 
-            var persistedCount = 0;
-            var itemErrors = new List<string>();
-            foreach (var item in items)
+            foreach (var item in feed.Items)
             {
                 var link = item.Links.FirstOrDefault(itemLink => itemLink.RelationshipType is null or "alternate")?.Uri?.ToString()?.Trim()
                     ?? item.Links.FirstOrDefault()?.Uri?.ToString()
                     ?? item.Id?.Trim();
-                var enclosureImage = item.Links.FirstOrDefault(itemLink => itemLink.RelationshipType == "enclosure" && itemLink.MediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true)?.Uri?.ToString()
-                    ?? item.ElementExtensions.FirstOrDefault(extension => extension.OuterName == "enclosure")?.GetObject<System.Xml.Linq.XElement>()?.Attribute("url")?.Value;
+                link = link is null ? null : WebUtility.HtmlDecode(link);
                 if (string.IsNullOrWhiteSpace(link))
                 {
                     logger.LogWarning("Item sem link ignorado no feed {FeedId}: {Title}.", message.FeedId, item.Title?.Text);
                     continue;
                 }
 
-                ScrappedArticle? article = null;
-                try
-                {
-                    logger.LogInformation("Processando item {ArticleUrl} do feed {FeedId}.", link, message.FeedId);
-                    article = await scrapper.ExtractAsync(link, enclosureImage, CancellationToken.None);
-                    logger.LogInformation("Extração concluída para {ArticleUrl}: {Result}.", link, article is null ? "fallback RSS" : "scrapper");
-                }
-                catch (Exception exception)
-                {
-                    var error = $"{link}: {exception.Message}";
-                    itemErrors.Add(error[..Math.Min(error.Length, 500)]);
-                    db.IngestionErrors.Add(new WorkerIngestionError
-                    {
-                        RunId = run.Id,
-                        FeedId = message.FeedId,
-                        CreatedAt = DateTimeOffset.UtcNow,
-                        Stage = "Scrapper",
-                        ArticleUrl = link,
-                        Message = error[..Math.Min(error.Length, 2000)]
-                    });
-                    logger.LogWarning(exception, "Falha ao extrair o item {ArticleUrl} do feed {FeedId}; os dados do RSS serão usados.", link, message.FeedId);
-                }
-
-                var articleUrl = article?.Url ?? link;
-                var publishedAt = item.PublishDate;
-                if (article is not null && DateTimeOffset.TryParse(article.PublishedTime, out var published))
-                    publishedAt = published;
-
-                db.Articles.Add(new WorkerArticle
-                {
-                    FeedId = message.FeedId,
-                    Title = article?.Title ?? item.Title?.Text ?? "Sem título",
-                    Url = articleUrl,
-                    Author = article?.Author ?? item.Authors.FirstOrDefault()?.Name,
-                    Excerpt = article?.Excerpt ?? item.Summary?.Text,
-                    ContentHtml = article?.ContentHtml ?? item.Summary?.Text,
-                    ContentText = article?.ContentText ?? item.Summary?.Text,
-                    ImageUrl = article?.ImageUrl ?? enclosureImage,
-                    ImageBase64 = article?.ImageBase64,
-                    ImageMimeType = article?.ImageMimeType,
-                    Category = item.Categories.FirstOrDefault()?.Name ?? SourceClassifier.Classify(articleUrl),
-                    PublishedAt = publishedAt,
-                    CollectedAt = DateTimeOffset.UtcNow
-                });
-                persistedCount++;
-                logger.LogInformation("Item {ArticleUrl} preparado para persistência no feed {FeedId}.", articleUrl, message.FeedId);
+                var enclosureImage = item.Links.FirstOrDefault(itemLink => itemLink.RelationshipType == "enclosure" && itemLink.MediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true)?.Uri?.ToString()
+                    ?? item.ElementExtensions.FirstOrDefault(extension => extension.OuterName == "enclosure")?.GetObject<System.Xml.Linq.XElement>()?.Attribute("url")?.Value;
+                commands.Add(new ProcessArticleCommand(
+                    message.FeedId,
+                    message.RunId,
+                    link,
+                    item.Title?.Text,
+                    item.Authors.FirstOrDefault()?.Name,
+                    item.Summary?.Text,
+                    item.Summary?.Text,
+                    enclosureImage,
+                    item.Categories.FirstOrDefault()?.Name,
+                    item.PublishDate));
             }
 
+            run.ItemCount = commands.Count;
+            run.Status = commands.Count == 0 ? "Succeeded" : "Queued";
             source.LastCheckedAt = DateTimeOffset.UtcNow;
             source.NextScheduledAt = source.LastCheckedAt.Value.AddHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
-            source.LastError = itemErrors.Count == 0 ? null : string.Join(" | ", itemErrors.Take(3));
-            source.LastCollectedCount = persistedCount;
-            run.CompletedAt = DateTimeOffset.UtcNow;
-            run.Status = itemErrors.Count == 0 ? "Succeeded" : "SucceededWithErrors";
-            run.PersistedCount = persistedCount;
-            run.ErrorCount = itemErrors.Count;
+            source.LastError = commands.Count == 0 ? "O feed não retornou itens com URL válida." : null;
+            source.LastCollectedCount = 0;
             await db.SaveChangesAsync();
-            logger.LogInformation("Feed {FeedId} confirmado no banco: status={Status}, {Count} itens RSS, {PersistedCount} artigos persistidos, {ErrorCount} erros.", message.FeedId, run.Status, items.Count, persistedCount, itemErrors.Count);
+
+            foreach (var command in commands)
+                await bus.Send(command);
+
+            logger.LogInformation("Feed {FeedId} confirmado: {Count} artigos enviados para a fila de artigos.", message.FeedId, commands.Count);
         }
         catch (Exception exception)
         {
-            source.LastCheckedAt = DateTimeOffset.UtcNow;
-            source.NextScheduledAt = source.LastCheckedAt.Value.AddHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
-            source.LastError = exception.Message[..Math.Min(exception.Message.Length, 500)];
             run.CompletedAt = DateTimeOffset.UtcNow;
             run.Status = "Failed";
-            run.Error = source.LastError;
+            run.Error = exception.Message[..Math.Min(exception.Message.Length, 500)];
             run.ErrorCount++;
+            source.LastCheckedAt = DateTimeOffset.UtcNow;
+            source.NextScheduledAt = source.LastCheckedAt.Value.AddHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
+            source.LastError = run.Error;
             db.IngestionErrors.Add(new WorkerIngestionError
             {
                 RunId = run.Id,
                 FeedId = message.FeedId,
                 CreatedAt = DateTimeOffset.UtcNow,
                 Stage = "Feed",
-                Message = source.LastError
+                Message = run.Error
             });
             await db.SaveChangesAsync();
-            logger.LogWarning(exception, "Falha ao processar o feed {FeedId}; a mensagem será repetida pelo Rebus.", message.FeedId);
+            logger.LogWarning(exception, "Falha ao ler/enfileirar o feed {FeedId}.", message.FeedId);
             throw;
         }
     }

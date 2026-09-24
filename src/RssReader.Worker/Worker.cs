@@ -12,6 +12,13 @@ public class Worker(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!(configuration.GetValue<bool?>("Ingestion:SchedulerEnabled") ?? true))
+        {
+            logger.LogInformation("Agendador de feeds desabilitado neste worker; aguardando eventos de artigos.");
+            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+            return;
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

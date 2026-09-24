@@ -21,6 +21,8 @@ public sealed class Article
     public Guid FeedId { get; set; }
     public required string Title { get; set; }
     public required string Url { get; set; }
+    public required string UrlHash { get; set; }
+    public required string TitleHash { get; set; }
     public string? Author { get; set; }
     public string? Excerpt { get; set; }
     public string? ContentHtml { get; set; }
@@ -43,6 +45,7 @@ public sealed class FeedIngestionRun
     public DateTimeOffset? CompletedAt { get; set; }
     public string Status { get; set; } = "Running";
     public int ItemCount { get; set; }
+    public int ProcessedCount { get; set; }
     public int PersistedCount { get; set; }
     public int ErrorCount { get; set; }
     public string? Error { get; set; }
@@ -72,11 +75,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Feed>().HasIndex(feed => feed.Url).IsUnique();
         modelBuilder.Entity<Article>().HasKey(article => article.Id);
         modelBuilder.Entity<Article>().HasIndex(article => article.CollectedAt);
+        modelBuilder.Entity<Article>().HasIndex(article => article.UrlHash).IsUnique();
+        modelBuilder.Entity<Article>().HasIndex(article => article.TitleHash);
         modelBuilder.Entity<Article>().HasOne<Feed>().WithMany().HasForeignKey(article => article.FeedId);
         modelBuilder.Entity<FeedIngestionRun>().HasKey(run => run.Id);
         modelBuilder.Entity<FeedIngestionRun>().HasIndex(run => new { run.FeedId, run.StartedAt });
         modelBuilder.Entity<FeedIngestionError>().HasKey(error => error.Id);
         modelBuilder.Entity<FeedIngestionError>().HasIndex(error => new { error.FeedId, error.CreatedAt });
-        // Articles intentionally have no unique index: repeated content must be retained.
     }
 }
