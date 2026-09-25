@@ -21,8 +21,8 @@ public sealed class Article
     public Guid FeedId { get; set; }
     public required string Title { get; set; }
     public required string Url { get; set; }
-    public required string UrlHash { get; set; }
-    public required string TitleHash { get; set; }
+    public string? UrlHash { get; set; }
+    public string? TitleHash { get; set; }
     public string? Author { get; set; }
     public string? Excerpt { get; set; }
     public string? ContentHtml { get; set; }

@@ -42,6 +42,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"ImageBase64\" text;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"ImageMimeType\" text;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"Category\" text;");
+    await db.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS \"IX_Articles_UrlHash\";");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"IsFavorite\" boolean NOT NULL DEFAULT false;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"IsHidden\" boolean NOT NULL DEFAULT false;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"UrlHash\" text;");
@@ -216,10 +217,10 @@ app.MapGet("/api/articles", async (AppDbContext db, string? search, string? cate
         query = query.Where(item => item.article.CollectedAt >= DateTimeOffset.UtcNow.AddHours(-periodHours.Value));
 
     var ordered = sort?.Equals("collected", StringComparison.OrdinalIgnoreCase) == true
-        ? query.OrderByDescending(item => item.article.CollectedAt)
-        : query.OrderByDescending(item => item.article.PublishedAt ?? item.article.CollectedAt);
+        ? query.OrderByDescending(item => item.article.CollectedAt).ThenByDescending(item => item.article.Id)
+        : query.OrderByDescending(item => item.article.PublishedAt ?? item.article.CollectedAt).ThenByDescending(item => item.article.Id);
     var totalCount = await query.CountAsync(cancellationToken);
-    var currentPageSize = Math.Clamp(pageSize ?? 10, 1, 100);
+    var currentPageSize = pageSize == 0 ? Math.Max(totalCount, 1) : Math.Clamp(pageSize ?? 10, 1, 100);
     var currentPage = Math.Max(page ?? 1, 1);
     var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)currentPageSize));
     currentPage = Math.Min(currentPage, totalPages);

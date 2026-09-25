@@ -1,0 +1,16 @@
+:host { display: block; position: relative; padding: 42px 48px 36px; background: #fffaf0; }
+.kicker { font: 500 .72rem 'DM Mono', monospace; letter-spacing: .12em; color: #68756a; }
+h2 { max-width: 650px; margin: 12px 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; }
+.modal-byline, .modal-meta { color: #68756a; font: .8rem 'DM Mono', monospace; }
+.modal-byline { margin: -4px 0 8px; }
+.modal-image { display: block; width: 100%; max-height: 360px; object-fit: cover; margin: 26px 0 30px; background: #dce6d5; }
+.content { white-space: pre-wrap; line-height: 1.7; margin: 30px 0; }
+.formatted-content { white-space: normal; }
+.formatted-content p { margin: 0 0 1em; }
+.formatted-content img { max-width: 100%; height: auto; }
+.close { position: absolute; top: 12px; right: 14px; padding: 2px 10px; background: transparent; color: #17221d; font-size: 2rem; font-weight: 400; }
+.source { color: #d94f35; font-weight: 600; font-size: .9rem; text-decoration: none; }
+
+@media (max-width: 760px) {
+  :host { padding: 40px 24px 30px; }
+}

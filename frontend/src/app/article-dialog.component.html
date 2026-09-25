@@ -1,0 +1,17 @@
+<button class="close" (click)="close()" aria-label="Fechar leitura">×</button>
+<span class="kicker">{{ article.category || 'GERAL' }}</span>
+<h2 mat-dialog-title>{{ article.title }}</h2>
+<div mat-dialog-content>
+  <p class="modal-byline">{{ article.feedName }}@if (article.author) { <span>· por {{ article.author }}</span> }</p>
+  <p class="modal-meta">
+    @if (article.publishedAt) { Publicado em {{ article.publishedAt | date:'dd MMM yyyy, HH:mm' }} · }
+    Coletado em {{ article.collectedAt | date:'dd MMM yyyy, HH:mm' }}
+  </p>
+  @if (imageSource(); as image) {
+    <img class="modal-image" [src]="image" [alt]="article.title" />
+  }
+  <div class="content" [class.formatted-content]="!!article.contentHtml" [innerHTML]="article.contentHtml || article.contentText || article.excerpt || 'O scrapper não retornou texto para esta notícia.'"></div>
+</div>
+<div mat-dialog-actions>
+  <a class="source" [href]="article.url" target="_blank" rel="noopener">Abrir notícia na fonte <span aria-hidden="true">↗</span></a>
+</div>

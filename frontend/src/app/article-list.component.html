@@ -1,0 +1,39 @@
+@for (article of articles(); track article.id) {
+  <article class="story-card" (click)="selectArticle(article)" tabindex="0">
+    @if (imageSource(article); as image) {
+      <img [src]="image" [alt]="''" loading="lazy" />
+    }
+    <div class="story-body">
+      <div class="story-meta">
+        <span class="date">{{ article.collectedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+        <span class="story-actions">
+          <button class="favorite" [class.selected]="article.isFavorite" (click)="toggleFavorite(article, $event)" [attr.aria-label]="article.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'">★</button>
+          <button class="hide-article" (click)="hideArticle(article, $event)" aria-label="Inibir notícia">⊘</button>
+        </span>
+      </div>
+      <span class="category">{{ article.category || 'Geral' }}</span>
+      <h2>{{ article.title }}</h2>
+      <p class="byline">{{ article.feedName }}@if (article.author) { <span>· por {{ article.author }}</span> }</p>
+      <p>{{ article.excerpt || article.contentText || 'Conteúdo extraído pelo scrapper.' }}</p>
+      <span class="read-more">Ler conteúdo extraído <span aria-hidden="true">→</span></span>
+    </div>
+  </article>
+} @empty {
+  <p class="empty">Nenhuma história coletada ainda.</p>
+}
+
+@if (totalPages() > 1) {
+  <nav class="pagination" aria-label="Paginação">
+    <button (click)="changePage(page() - 1)" [disabled]="page() === 1" aria-label="Página anterior">←</button>
+    <label>
+      Página
+      <select [ngModel]="page()" (ngModelChange)="changePage($event)" aria-label="Selecionar página">
+        @for (pageNumber of pageOptions(); track pageNumber) {
+          <option [ngValue]="pageNumber">{{ pageNumber }}</option>
+        }
+      </select>
+      de {{ totalPages() }}
+    </label>
+    <button (click)="changePage(page() + 1)" [disabled]="page() === totalPages()" aria-label="Próxima página">→</button>
+  </nav>
+}
