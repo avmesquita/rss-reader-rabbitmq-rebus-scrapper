@@ -1,7 +1,5 @@
 # RSS Reader
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main)
-
 [![CI](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml)
 
 [![Docker Images](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/docker.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/docker.yml)
@@ -212,6 +210,8 @@ A consulta permite ordenar por data de publicação ou coleta e limitar o perío
 ## Desenvolvimento
 
 O repositório inclui uma configuração de GitHub Codespaces em `.devcontainer`. Depois de abrir o Codespace, o ambiente restaura a solução .NET e instala as dependências do Angular automaticamente. Para subir a infraestrutura local, use `docker compose up --build`.
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main)
 
 O workflow `CI` valida o build Release da solução .NET, o type-check/build do Angular e a configuração do Docker Compose. O workflow `Deploy frontend to GitHub Pages` publica apenas o frontend estático na branch principal. A API, o PostgreSQL, o RabbitMQ e o scrapper continuam precisando ser hospedados separadamente; sem uma API pública configurada, a página publicada serve apenas o shell do frontend.
 
