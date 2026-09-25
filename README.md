@@ -14,7 +14,19 @@ Arquitetura modular para coleta e leitura de feeds RSS/Atom, extração de conte
 
 ## Screenshot
 
-<img width="1479" height="928" alt="image" src="https://github.com/user-attachments/assets/1c4810a8-2f2a-4838-ba5f-cd7ca865720c" />
+Home
+<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/c2dee2d7-4f02-4aff-b8ab-e7c1668506ab" />
+
+### Dashboard
+
+Dados gerais
+<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/80384cd1-cd23-45db-893b-8753f1a2f1ab" />
+
+Fontes de RSS
+<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/079dbb65-a16e-4d6e-b9ef-f06d7a13820e" />
+
+Telemetria
+<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/98b9435a-f835-464f-a325-cbacde3538ac" />
 
 ## Executar
 
