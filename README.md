@@ -10,9 +10,14 @@
 
 ---
 
-Arquitetura modular para coleta e leitura de feeds RSS/Atom, extração de conteúdo em fila e consulta por meio do Angular sobre PostgreSQL.
+O projeto combina uma API ASP.NET Core, um worker de ingestão, um worker dedicado a artigos e uma camada de apresentação em Angular. A solução foi desenhada para separar duas responsabilidades bem definidas:
 
-## Screenshot
+- leitura e agendamento dos feeds RSS/Atom
+- extração, deduplicação e persistência dos artigos
+
+Essa divisão é implementada com RabbitMQ como broker de mensagens e Rebus como biblioteca de mensageria, permitindo desacoplamento entre a API, o worker de feeds e o article worker. O padrão elimina acoplamento síncrono entre produção e processamento, torna a ingestão tolerante a picos de carga e facilita a escalabilidade horizontal por filas e workers independentes.
+
+## Screenshots
 
 Home
 <img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/c2dee2d7-4f02-4aff-b8ab-e7c1668506ab" />
@@ -27,15 +32,6 @@ Fontes de RSS
 
 Telemetria
 <img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/98b9435a-f835-464f-a325-cbacde3538ac" />
-
-## Executar
-
-O projeto combina uma API ASP.NET Core, um worker de ingestão, um worker dedicado a artigos e uma camada de apresentação em Angular. A solução foi desenhada para separar duas responsabilidades bem definidas:
-
-- leitura e agendamento dos feeds
-- extração, deduplicação e persistência dos artigos
-
-Essa divisão é implementada com RabbitMQ como broker de mensagens e Rebus como biblioteca de mensageria, permitindo desacoplamento entre a API, o worker de feeds e o article worker. O padrão elimina acoplamento síncrono entre produção e processamento, torna a ingestão tolerante a picos de carga e facilita a escalabilidade horizontal por filas e workers independentes.
 
 ## Começo rápido
 
