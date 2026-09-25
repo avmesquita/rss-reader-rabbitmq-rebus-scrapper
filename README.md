@@ -297,3 +297,14 @@ git push origin v1.0.0
 ```
 
 O workflow publica as três imagens com as tags `1.0.0`, `1.0`, `1` e uma tag baseada no commit. A tag `latest` continua sendo atualizada somente pela branch padrão.
+
+## Agradecimentos
+
+Este projeto utiliza e agradece aos seguintes projetos e comunidades:
+
+- [amerkurev/scrapper](https://github.com/amerkurev/scrapper): serviço utilizado para extrair o conteúdo e os metadados completos dos artigos.
+- [Rebus](https://github.com/rebus-org/Rebus): biblioteca utilizada para implementar a comunicação assíncrona entre a API e os workers.
+- [Rebus.RabbitMq](https://github.com/rebus-org/Rebus.RabbitMq): transporte RabbitMQ utilizado com o Rebus.
+- [RabbitMQ](https://www.rabbitmq.com/): broker de mensagens utilizado pela aplicação.
+
+Consulte os repositórios oficiais para obter os créditos, licenças e termos de uso de cada projeto.
