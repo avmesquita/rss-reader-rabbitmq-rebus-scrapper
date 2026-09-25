@@ -29,7 +29,7 @@ public sealed class RabbitDiagnostics(HttpClient httpClient, IConfiguration conf
         var username = configuration["RabbitMq:Username"];
         var password = configuration["RabbitMq:Password"];
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            return new RabbitStatus(false, "Credenciais do RabbitMQ não configuradas.", []);
+            return new RabbitStatus(false, "Credenciais do RabbitMQ não configuradas.", [], []);
 
         var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", token);
@@ -37,21 +37,25 @@ public sealed class RabbitDiagnostics(HttpClient httpClient, IConfiguration conf
         {
             var queues = await httpClient.GetFromJsonAsync<List<RabbitQueue>>(
                 $"{baseUrl.TrimEnd('/')}/api/queues/%2F", cancellationToken) ?? [];
+            var queueStatuses = queues
+                .Select(queue => new RabbitQueueStatus(queue.Name, queue.Messages, queue.MessagesReady, queue.MessagesUnacknowledged, queue.Consumers))
+                .OrderBy(queue => queue.Name)
+                .ToList();
             var errorQueues = queues
                 .Where(queue => queue.Name.Contains("error", StringComparison.OrdinalIgnoreCase)
                     || queue.Name.Contains("dead", StringComparison.OrdinalIgnoreCase))
                 .Select(queue => new RabbitQueueStatus(queue.Name, queue.Messages, queue.MessagesReady, queue.MessagesUnacknowledged, queue.Consumers))
                 .ToList();
-            return new RabbitStatus(true, null, errorQueues);
+            return new RabbitStatus(true, null, queueStatuses, errorQueues);
         }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
-            return new RabbitStatus(false, exception.Message, []);
+            return new RabbitStatus(false, exception.Message, [], []);
         }
     }
 }
 
-public sealed record RabbitStatus(bool Available, string? Error, IReadOnlyList<RabbitQueueStatus> ErrorQueues);
+public sealed record RabbitStatus(bool Available, string? Error, IReadOnlyList<RabbitQueueStatus> Queues, IReadOnlyList<RabbitQueueStatus> ErrorQueues);
 public sealed record RabbitQueueStatus(string Name, int Messages, int MessagesReady, int MessagesUnacknowledged, int Consumers);
 
 internal sealed class RabbitQueue

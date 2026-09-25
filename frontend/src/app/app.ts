@@ -30,6 +30,8 @@ export class App implements OnInit, OnDestroy {
   protected debug: DebugStatus | null = null;
   protected dashboard: Dashboard | null = null;
   protected dashboardOpen = false;
+  protected dashboardTab: DashboardTab = 'stats';
+  protected telemetryRefreshing = false;
   protected secondsUntilRefresh: number | null = null;
   protected refreshingFeedIds = new Set<string>();
   private refreshTimer?: ReturnType<typeof setInterval>;
@@ -76,6 +78,7 @@ export class App implements OnInit, OnDestroy {
 
   protected openDashboard(): void {
     this.dashboardOpen = true;
+    this.dashboardTab = 'stats';
     this.loadDashboard();
     this.loadDebug();
   }
@@ -97,6 +100,15 @@ export class App implements OnInit, OnDestroy {
 
   private loadDebug(): void {
     this.http.get<DebugStatus>('/api/debug').subscribe({ next: debug => this.debug = debug });
+  }
+
+  protected refreshTelemetry(): void {
+    this.telemetryRefreshing = true;
+    this.http.get<DebugStatus>('/api/debug').subscribe({
+      next: debug => this.debug = debug,
+      error: () => this.message = 'Não foi possível atualizar a telemetria.',
+      complete: () => this.telemetryRefreshing = false
+    });
   }
 
   protected get refreshLabel(): string {
@@ -253,12 +265,13 @@ interface Article {
 }
 
 interface Dashboard { stats: { totalArticles: number; visibleArticles: number; hiddenArticles: number; favorites: number }; feeds: Feed[]; }
+type DashboardTab = 'stats' | 'feeds' | 'telemetry';
 interface ArticlePage { items: Article[]; totalCount: number; page: number; pageSize: number; totalPages: number; categories: string[]; }
 
 interface DebugStatus {
   generatedAt: string;
   api: { status: string; recentErrors: ApiError[] };
-  rabbit: { available: boolean; error?: string; errorQueues: RabbitQueue[] };
+  rabbit: { available: boolean; error?: string; queues: RabbitQueue[]; errorQueues: RabbitQueue[] };
 }
 
 interface ApiError { occurredAt: string; method: string; path: string; message: string; }
