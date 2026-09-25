@@ -1,0 +1,74 @@
+<button class="close" (click)="close()" aria-label="Fechar dashboard">×</button>
+<span class="kicker">OPERAÇÃO</span>
+<h2 mat-dialog-title>Dashboard</h2>
+<nav class="dashboard-tabs" role="tablist" aria-label="Seções do dashboard">
+  <button [class.active]="tab === 'stats'" (click)="tab = 'stats'" role="tab" [attr.aria-selected]="tab === 'stats'">Estatísticas</button>
+  <button [class.active]="tab === 'feeds'" (click)="tab = 'feeds'" role="tab" [attr.aria-selected]="tab === 'feeds'">Fontes</button>
+  <button [class.active]="tab === 'telemetry'" (click)="tab = 'telemetry'" role="tab" [attr.aria-selected]="tab === 'telemetry'">Telemetria</button>
+</nav>
+
+<div mat-dialog-content>
+  @if (tab === 'stats') {
+    @if (dashboard; as data) {
+      <div class="dashboard-stats">
+        <div><strong>{{ data.stats.visibleArticles }}</strong><span>visíveis</span></div>
+        <div><strong>{{ data.stats.totalArticles }}</strong><span>coletadas</span></div>
+        <div><strong>{{ data.stats.favorites }}</strong><span>favoritas</span></div>
+        <div><strong>{{ data.stats.hiddenArticles }}</strong><span>inibidas</span></div>
+      </div>
+    }
+  }
+
+  @if (tab === 'feeds') {
+    <div class="dashboard-section">
+      <span class="kicker">NOVO CONCENTRADOR</span>
+      <div class="feed-form">
+        <input [(ngModel)]="feedName" placeholder="Nome da fonte" />
+        <input [(ngModel)]="feedUrl" placeholder="https://exemplo.com/rss.xml" />
+        <button (click)="addFeed()" [disabled]="!feedName || !feedUrl">Adicionar fonte</button>
+      </div>
+    </div>
+    <div class="dashboard-section">
+      <span class="kicker">FONTES ATIVAS</span>
+      @for (feed of feeds; track feed.id) {
+        <div class="feed">
+          <span>
+            <strong>{{ feed.name }}</strong>
+            <small>{{ feed.lastCheckedAt ? 'Lida ' + (feed.lastCheckedAt | date:'dd/MM HH:mm') : 'Ainda não lida' }} · {{ feed.lastCollectedCount }} notícias</small>
+            <small>{{ feed.lastError || feed.url }}</small>
+          </span>
+          <span class="feed-actions">
+            <button class="refresh-feed" (click)="refreshFeed(feed)" [disabled]="isRefreshing(feed)" [attr.aria-label]="'Atualizar ' + feed.name">↻</button>
+            <button class="delete-feed" (click)="deleteFeed(feed)" aria-label="Excluir fonte">×</button>
+          </span>
+        </div>
+      }
+    </div>
+  }
+
+  @if (tab === 'telemetry') {
+    <div class="telemetry-toolbar">
+      <span class="kicker">SITUAÇÃO DO SISTEMA</span>
+      <button class="telemetry-refresh" (click)="refreshTelemetry()" [disabled]="telemetryRefreshing">{{ telemetryRefreshing ? 'Atualizando...' : 'Atualizar telemetria' }} ↻</button>
+    </div>
+    @if (debug; as diagnostics) {
+      <div class="debug-inline">
+        <div class="debug-grid">
+          <div><strong class="status-ok">{{ diagnostics.api.status }}</strong><span>API · {{ diagnostics.api.recentErrors.length }} erros</span></div>
+          <div><strong [class.status-ok]="diagnostics.rabbit.available" [class.status-bad]="!diagnostics.rabbit.available">{{ diagnostics.rabbit.available ? 'conectado' : 'indisponível' }}</strong><span>RabbitMQ</span></div>
+        </div>
+        <div class="queue-list">
+          <strong>Todas as filas</strong>
+          @if (diagnostics.rabbit.queues.length) {
+            @for (queue of diagnostics.rabbit.queues; track queue.name) {
+              <div class="queue"><span>{{ queue.name }}</span><small>{{ queue.messages }} mensagens · {{ queue.messagesReady }} prontas · {{ queue.messagesUnacknowledged }} pendentes · {{ queue.consumers }} consumidores</small></div>
+            }
+          } @else {
+            <small>Nenhuma fila encontrada.</small>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>
+<p class="message">{{ message }}</p>
