@@ -1,7 +1,7 @@
 :host { display: block; position: relative; padding: 42px 48px 36px; background: #fffaf0; }
 .kicker { font: 500 .72rem 'DM Mono', monospace; letter-spacing: .12em; color: #68756a; }
-h2 { max-width: 650px; margin: 12px 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; }
-.modal-byline, .modal-meta { color: #68756a; font: .8rem 'DM Mono', monospace; }
+h2 { max-width: 650px; margin: 12px 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; color: #d94f35; font-weight: 800; }
+.modal-byline, .modal-meta { color: #d94f35; font: .8rem 'DM Mono', monospace; font-weight: 800; }
 .modal-byline { margin: -4px 0 8px; }
 .modal-image { display: block; width: 100%; max-height: 360px; object-fit: cover; margin: 26px 0 30px; background: #dce6d5; }
 .content { white-space: pre-wrap; line-height: 1.7; margin: 30px 0; }

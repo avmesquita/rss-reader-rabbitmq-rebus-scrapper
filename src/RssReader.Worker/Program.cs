@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Rebus.Config;
 using Rebus.Routing.TypeBased;
@@ -13,9 +14,15 @@ var articleQueue = configuration["RabbitMq:ArticleQueue"] ?? "rss-reader-article
 builder.Services.AddHttpClient("rss", client =>
 {
 	client.Timeout = TimeSpan.FromSeconds(45);
-	client.DefaultRequestHeaders.UserAgent.ParseAdd("RssReader/1.0 (+https://github.com/rss-reader)");
-	client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/atom+xml, application/xml, text/xml");
+	client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) RssReaderWorker/1.0");
+	//client.DefaultRequestHeaders.UserAgent.ParseAdd("RssReader/1.0 (+https://github.com/rss-reader)");
+	client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/atom+xml, application/xml, text/xml");	
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli
 });
+
 builder.Services.AddHttpClient<ScrapperClient>(client =>
 {
 	client.Timeout = TimeSpan.FromSeconds(45);

@@ -7,10 +7,11 @@ import { DashboardDialogComponent } from './components/dialogs/dashboard-dialog/
 import { Article, Feed } from './models';
 import { ArticleQuery, ArticleService } from './services/article.service';
 import { FeedService } from './services/feed.service';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, ArticleListComponent],
+  imports: [FormsModule, ArticleListComponent, MatButtonModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
