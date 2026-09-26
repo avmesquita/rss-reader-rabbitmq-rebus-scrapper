@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { Article } from './models';
+import { Article } from '../../../models';
+import { articleImageSource } from '../../../utils/article-image.util';
 
 @Component({
   selector: 'app-article-dialog',
@@ -18,10 +19,6 @@ export class ArticleDialogComponent {
   }
 
   imageSource(): string | null {
-    if (this.article.imageUrl)
-      return this.article.imageUrl;
-    if (this.article.imageBase64)
-      return `data:${this.article.imageMimeType || 'image/jpeg'};base64,${this.article.imageBase64}`;
-    return null;
+    return articleImageSource(this.article);
   }
 }

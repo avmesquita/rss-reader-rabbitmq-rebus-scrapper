@@ -48,7 +48,7 @@ export interface Dashboard {
   feeds: Feed[];
 }
 
-export type DashboardTab = 'stats' | 'feeds' | 'telemetry';
+export type DashboardTab = 'stats' | 'feeds' | 'telemetry' | 'system';
 
 export interface DebugStatus {
   generatedAt: string;
@@ -69,4 +69,12 @@ export interface RabbitQueue {
   messagesReady: number;
   messagesUnacknowledged: number;
   consumers: number;
+}
+
+export interface PurgeStats {
+  purgedArticles: number;
+  purgedFeeds: number;
+  purgedImages: number;
+  purgedErrors: number;
+  purgedAt: string;
 }

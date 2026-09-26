@@ -1,0 +1,10 @@
+<button mat-stroked-button color="warn" (click)="purgeData()" aria-label="Excluir Notícias > 30 dias"> Excluir Notícias > 30 dias</button>
+
+<div mat-dialog-content> 
+  <p class="modal-meta">
+      <div class="dashboard-stats">
+        <div class="dashboard-text"><strong>Articles</strong><span>{{ purgeStats.purgedArticles }}</span></div>
+        <div class="dashboard-text"><strong>Errors</strong><span>{{ purgeStats.purgedErrors }}</span></div>
+        <div class="dashboard-text"><strong>At</strong><span>{{ purgeStats.purgedAt }}</span></div>
+      </div>
+</div>

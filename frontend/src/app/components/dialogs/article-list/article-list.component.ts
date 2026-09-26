@@ -1,11 +1,13 @@
 import { Component, input, output } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Article } from './models';
+import { Article } from '../../../models';
+import { articleImageSource } from '../../../utils/article-image.util';
 
 @Component({
   selector: 'app-article-list',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, MatButtonModule ],
   templateUrl: './article-list.component.html',
   styleUrl: './article-list.component.scss'
 })
@@ -21,11 +23,7 @@ export class ArticleListComponent {
   readonly pageChanged = output<number>();
 
   imageSource(article: Article): string | null {
-    if (article.imageUrl)
-      return article.imageUrl;
-    if (article.imageBase64)
-      return `data:${article.imageMimeType || 'image/jpeg'};base64,${article.imageBase64}`;
-    return null;
+    return articleImageSource(article);
   }
 
   selectArticle(article: Article): void {

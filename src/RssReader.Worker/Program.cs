@@ -31,8 +31,8 @@ builder.Services.AddRebus((configure, _) => configure
 		.Map<ProcessArticleCommand>(articleQueue))
 	.Options(options =>
 	{
-		var workers = Math.Max(1, configuration.GetValue<int?>("Ingestion:Workers") ?? 1);
-		var maxParallelism = Math.Max(1, configuration.GetValue<int?>("Ingestion:MaxParallelism") ?? 1);
+		var workers = Math.Max(1, configuration.GetValue<int?>("Ingestion:Workers") ?? 2);
+		var maxParallelism = Math.Max(1, configuration.GetValue<int?>("Ingestion:MaxParallelism") ?? 2);
 		options.SetNumberOfWorkers(workers);
 		options.SetMaxParallelism(maxParallelism);
 	}));

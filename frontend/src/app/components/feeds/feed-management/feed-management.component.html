@@ -1,0 +1,26 @@
+<div class="dashboard-section">
+  <span class="kicker">NOVO CONCENTRADOR</span>
+  <div class="feed-form">
+    <input [(ngModel)]="feedName" placeholder="Nome da fonte" />
+    <input [(ngModel)]="feedUrl" placeholder="https://exemplo.com/rss.xml" />
+    <button (click)="addFeed()" [disabled]="!feedName || !feedUrl">Adicionar fonte</button>
+  </div>
+</div>
+
+<div class="dashboard-section">
+  <span class="kicker">FONTES ATIVAS</span>
+  @for (feed of feeds; track feed.id) {
+    <div class="feed">
+      <span>
+        <strong>{{ feed.name }}</strong>
+        <small>{{ feed.lastCheckedAt ? 'Lida ' + (feed.lastCheckedAt | date:'dd/MM HH:mm') : 'Ainda não lida' }} · {{ feed.lastCollectedCount }} notícias</small>
+        <small>{{ feed.lastError || feed.url }}</small>
+      </span>
+      <span class="feed-actions">
+        <button class="refresh-feed" (click)="refreshFeed(feed)" [disabled]="isRefreshing(feed)" [attr.aria-label]="'Atualizar ' + feed.name">↻</button>
+        <button class="delete-feed" (click)="deleteFeed(feed)" aria-label="Excluir fonte">×</button>
+      </span>
+    </div>
+  }
+</div>
+<p class="message">{{ message }}</p>

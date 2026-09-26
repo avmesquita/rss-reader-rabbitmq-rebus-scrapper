@@ -276,6 +276,32 @@ app.MapGet("/api/debug", async (IConfiguration config, ApiDiagnostics diagnostic
     });
 });
 
+app.MapDelete("/api/system/purge", async (IConfiguration config, AppDbContext db, CancellationToken cancellationToken) =>
+{
+    if (!config.GetValue<bool>("Debug:Enabled"))
+        return Results.NotFound();
+
+    var cutoffDate = DateTimeOffset.UtcNow.AddDays(-30);
+
+    // Executa a deleção em lote direto no banco (sem trazer dados pra memória)
+    // O retorno é o total exato de linhas afetadas.
+    var purgedArticles = await db.Articles
+        .Where(a => a.PublishedAt < cutoffDate && !a.IsFavorite)
+        .ExecuteDeleteAsync(cancellationToken);
+
+    // Se precisar expurgar logs/erros velhos na mesma regra:
+    var purgedErrors = await db.IngestionErrors
+        .Where(e => e.CreatedAt < cutoffDate)
+        .ExecuteDeleteAsync(cancellationToken);
+
+    return Results.Ok(new
+    {
+        purgedArticles,
+        purgedErrors,
+        purgedAt = DateTimeOffset.UtcNow
+    });
+});
+
 app.MapPut("/api/articles/{id:long}/favorite", async (long id, FavoriteRequest request, AppDbContext db, CancellationToken cancellationToken) =>
 {
     var article = await db.Articles.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
