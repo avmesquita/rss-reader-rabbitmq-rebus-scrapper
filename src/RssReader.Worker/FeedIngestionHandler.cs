@@ -27,15 +27,26 @@ public sealed class FeedIngestionHandler(
             return;
         }
 
-        var run = new WorkerIngestionRun
+        var run = await db.IngestionRuns.FindAsync(message.RunId);
+        if (run is null)
         {
-            Id = message.RunId,
-            FeedId = message.FeedId,
-            StartedAt = DateTimeOffset.UtcNow,
-            Status = "ReadingFeed"
-        };
-        db.IngestionRuns.Add(run);
-        await db.SaveChangesAsync();
+            run = new WorkerIngestionRun
+            {
+                Id = message.RunId,
+                FeedId = message.FeedId,
+                StartedAt = DateTimeOffset.UtcNow,
+                Status = "ReadingFeed"
+            };
+            db.IngestionRuns.Add(run);
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            // Em caso de retry, apenas reconfigura o estado de leitura
+            run.Status = "ReadingFeed";
+            run.StartedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+        }
 
         try
         {
@@ -95,6 +106,7 @@ public sealed class FeedIngestionHandler(
             source.LastCheckedAt = DateTimeOffset.UtcNow;
             source.NextScheduledAt = source.LastCheckedAt.Value.AddHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
             source.LastError = run.Error;
+
             db.IngestionErrors.Add(new WorkerIngestionError
             {
                 RunId = run.Id,
@@ -104,6 +116,7 @@ public sealed class FeedIngestionHandler(
                 Message = run.Error
             });
             await db.SaveChangesAsync();
+            
             logger.LogWarning(exception, "Falha ao ler/enfileirar o feed {FeedId}.", message.FeedId);
             throw;
         }

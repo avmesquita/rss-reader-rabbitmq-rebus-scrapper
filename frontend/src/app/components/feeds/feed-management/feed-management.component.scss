@@ -1,0 +1,15 @@
+.kicker { font: 500 .72rem 'DM Mono', monospace; letter-spacing: .12em; color: #68756a; }
+.dashboard-section { border-top: 1px solid #c9c7bd; padding: 22px 0; }
+.feed-form { display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 9px; margin-top: 13px; }
+.feed-form button { margin: 0; }
+.feed { display: flex; justify-content: space-between; gap: 8px; margin: 14px 0; padding: 12px 0; border-bottom: 1px solid #dedbd1; }
+.feed > span { display: grid; gap: 4px; min-width: 0; }
+.feed-actions { display: flex !important; align-items: start; gap: 8px; }
+.feed small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #68756a; font: .7rem 'DM Mono', monospace; }
+.refresh-feed, .delete-feed { padding: 0 5px; background: transparent; color: #68756a; font-size: 1.35rem; line-height: 1; }
+.delete-feed { color: #d94f35; }
+.message { min-height: 20px; color: #68756a; font-size: .85rem; }
+
+@media (max-width: 760px) {
+  .feed-form { grid-template-columns: 1fr; }
+}

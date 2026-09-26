@@ -40,7 +40,7 @@ Telemetria
 2. Ajuste as credenciais, portas e parâmetros de infraestrutura conforme o ambiente local ou de homologação.
 3. Suba a stack:
    ```bash
-   docker compose up --build
+   docker compose up -d --build --scale rss_article_worker=4
    ```
 4. Acesse os serviços:
    - Frontend: http://localhost:6660
@@ -206,6 +206,7 @@ A consulta permite ordenar por data de publicação ou coleta e limitar o perío
 - Defina `DEBUG_ENABLED=true` no `.env`.
 - Reinicie a API e o frontend.
 - O recurso deve permanecer desligado em ambientes públicos.
+- O painel de sistema usa `DELETE /api/system/purge` para apagar artigos, imagens armazenadas, fontes e histórico de ingestão. Essa operação também exige `DEBUG_ENABLED=true` e é irreversível.
 
 ## Desenvolvimento
 

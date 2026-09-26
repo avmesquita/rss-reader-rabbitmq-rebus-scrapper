@@ -1,0 +1,16 @@
+:host { display: block; position: relative; padding: 42px 48px 30px; background: #fffaf0; }
+h2 { margin: 12px 0; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; }
+.dashboard-tabs { display: flex; gap: 4px; margin: 26px 0 4px; border-bottom: 1px solid #c9c7bd; }
+.dashboard-tabs button { padding: 12px 15px; background: transparent; color: #68756a; border-bottom: 2px solid transparent; }
+.dashboard-tabs button.active { color: #17221d; border-bottom-color: #d94f35; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 28px 0 34px; background: #c9c7bd; border: 1px solid #c9c7bd; }
+.dashboard-stats > div { display: grid; gap: 6px; padding: 17px; background: #fffaf0; }
+.dashboard-stats strong { font-size: 1.8rem; }
+
+@media (max-width: 760px) {
+  :host { padding: 40px 24px 30px; }
+  .dashboard-stats { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-tabs { overflow-x: auto; }
+  .dashboard-tabs button { flex: 1 0 auto; }
+}
+.dashboard-text { font-family: 'Inter', sans-serif; font-size: 1.2rem; line-height: 1.4; color: #a0a3a2; }

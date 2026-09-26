@@ -1,20 +1,23 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
-import { ArticleDialogComponent } from './article-dialog.component';
-import { ArticleListComponent } from './article-list.component';
-import { DashboardDialogComponent } from './dashboard-dialog.component';
-import { Article, ArticlePage, Feed } from './models';
+import { ArticleDialogComponent } from './components/dialogs/article-dialog/article-dialog.component';
+import { ArticleListComponent } from './components/dialogs/article-list/article-list.component';
+import { DashboardDialogComponent } from './components/dialogs/dashboard-dialog/dashboard-dialog.component';
+import { Article, Feed } from './models';
+import { ArticleQuery, ArticleService } from './services/article.service';
+import { FeedService } from './services/feed.service';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-root',
-  imports: [FormsModule, ArticleListComponent],
+  imports: [FormsModule, ArticleListComponent, MatButtonModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
-  private readonly http = inject(HttpClient);
+  private readonly articleService = inject(ArticleService);
+  private readonly feedService = inject(FeedService);
   private readonly dialog = inject(MatDialog);
   protected articles: Article[] = [];
   protected feeds: Feed[] = [];
@@ -68,7 +71,8 @@ export class App implements OnInit, OnDestroy {
   protected openDashboard(): void {
     const dialogRef = this.dialog.open(DashboardDialogComponent, {
       width: '880px',
-      maxWidth: '100vw'
+      maxWidth: '100vw',
+      minHeight: '90vh'
     });
     dialogRef.afterClosed().subscribe(result => {
       if (result?.refresh)
@@ -77,7 +81,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   private loadFeeds(): void {
-    this.http.get<Feed[]>('/api/feeds').subscribe({
+    this.feedService.getFeeds().subscribe({
       next: feeds => {
         this.feeds = feeds;
         this.updateRefreshCountdown();
@@ -104,7 +108,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   private loadArticles(): void {
-    this.http.get<ArticlePage>('/api/articles', { params: this.articleParams() }).subscribe({
+    this.articleService.getArticles(this.articleQuery()).subscribe({
       next: result => {
         this.articles = result.items;
         this.totalCount = result.totalCount;
@@ -127,18 +131,17 @@ export class App implements OnInit, OnDestroy {
     this.loadArticles();
   }
 
-  private articleParams(): Record<string, string> {
-    const params: Record<string, string> = {
-      page: String(this.page),
-      pageSize: String(this.pageSize),
-      favoritesOnly: String(this.favoritesOnly)
+  private articleQuery(): ArticleQuery {
+    return {
+      page: this.page,
+      pageSize: this.pageSize,
+      favoritesOnly: this.favoritesOnly,
+      periodHours: this.periodHours,
+      sort: this.sort,
+      search: this.search,
+      category: this.category,
+      feedId: this.feedId
     };
-    if (this.periodHours > 0) params['periodHours'] = String(this.periodHours);
-    params['sort'] = this.sort;
-    if (this.search.trim()) params['search'] = this.search.trim();
-    if (this.category !== 'Todas') params['category'] = this.category;
-    if (this.feedId !== 'Todas') params['feedId'] = this.feedId;
-    return params;
   }
 
   protected openArticle(article: Article): void {
@@ -152,14 +155,14 @@ export class App implements OnInit, OnDestroy {
 
   protected toggleFavorite(article: Article): void {
     const isFavorite = !article.isFavorite;
-    this.http.put<{ id: number; isFavorite: boolean }>(`/api/articles/${article.id}/favorite`, { isFavorite }).subscribe({
+    this.articleService.setFavorite(article, isFavorite).subscribe({
       next: result => article.isFavorite = result.isFavorite,
       error: () => console.error('Não foi possível atualizar o favorito.')
     });
   }
 
   protected hideArticle(article: Article): void {
-    this.http.put<{ id: number; isHidden: boolean }>(`/api/articles/${article.id}/hidden`, { isHidden: true }).subscribe({
+    this.articleService.hideArticle(article).subscribe({
       next: () => {
         this.loadArticles();
       },
