@@ -72,7 +72,7 @@ export class App implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(DashboardDialogComponent, {
       width: '880px',
       maxWidth: '100vw',
-      minHeight: '100vh'
+      minHeight: '90vh'
     });
     dialogRef.afterClosed().subscribe(result => {
       if (result?.refresh)
