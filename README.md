@@ -37,6 +37,16 @@ Fontes de RSS
 Telemetria
 <img width="1268" height="961" alt="image" src="https://github.com/user-attachments/assets/315a77d7-4b0f-42a4-b507-2ee658cee7d0" />
 
+API
+<img width="1482" height="935" alt="image" src="https://github.com/user-attachments/assets/4a28ff1c-4237-445c-8bf4-1d882eceadd6" />
+
+RabbitMQ
+<img width="1058" height="480" alt="image" src="https://github.com/user-attachments/assets/38e63d78-4ca8-45d1-8df3-ec80492d75a2" />
+
+Execução (docker compose up -d --build --scale rss_article_worker=2)
+<img width="1318" height="545" alt="image" src="https://github.com/user-attachments/assets/72f64d53-51cd-4572-b80e-d179636536fa" />
+
+
 ## Começo rápido
 
 1. Crie o arquivo de ambiente local a partir do exemplo:
