@@ -14,6 +14,7 @@ var workerQueue = configuration["RabbitMq:WorkerQueue"] ?? "rss-reader-worker";
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Postgres")));
 builder.Services.AddSingleton<ApiDiagnostics>();
+builder.Services.AddSingleton<WriteAccessService>();
 builder.Services.AddHttpClient<RabbitDiagnostics>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -86,8 +87,60 @@ static string NormalizeArticleUrl(string url)
 }
 
 app.UseCors();
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var isApiWrite = path.StartsWithSegments("/api")
+        && (HttpMethods.IsPost(context.Request.Method)
+            || HttpMethods.IsPut(context.Request.Method)
+            || HttpMethods.IsPatch(context.Request.Method)
+            || HttpMethods.IsDelete(context.Request.Method));
+    var isUnlockRequest = path.Equals("/api/access/unlock", StringComparison.OrdinalIgnoreCase);
+
+    if (!isApiWrite || isUnlockRequest)
+    {
+        await next();
+        return;
+    }
+
+    var access = context.RequestServices.GetRequiredService<WriteAccessService>();
+    if (!access.IsConfigured)
+    {
+        await Results.Problem(
+            "O acesso de escrita não foi configurado pelo administrador.",
+            statusCode: StatusCodes.Status503ServiceUnavailable).ExecuteAsync(context);
+        return;
+    }
+
+    if (!access.ValidateToken(context.Request.Headers["X-Write-Token"].FirstOrDefault()))
+    {
+        await Results.Unauthorized().ExecuteAsync(context);
+        return;
+    }
+
+    await next();
+});
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.MapGet("/api/access/status", (HttpContext context, WriteAccessService access, IConfiguration config) =>
+    Results.Ok(new
+    {
+        configured = access.IsConfigured,
+        authorized = access.ValidateToken(context.Request.Headers["X-Write-Token"].FirstOrDefault()),
+        contactEmail = config["AccessControl:ContactEmail"]
+    }));
+
+app.MapPost("/api/access/unlock", (UnlockRequest request, WriteAccessService access) =>
+{
+    if (!access.IsConfigured)
+        return Results.Problem("O acesso de escrita não foi configurado pelo administrador.", statusCode: StatusCodes.Status503ServiceUnavailable);
+    if (!access.VerifyPassword(request.Password ?? string.Empty))
+        return Results.Unauthorized();
+
+    var (token, expiresAt) = access.CreateToken();
+    return Results.Ok(new { token, expiresAt });
+});
 
 app.MapGet("/api/feeds", async (AppDbContext db, CancellationToken cancellationToken) =>
     Results.Ok(await db.Feeds.AsNoTracking().OrderByDescending(feed => feed.CreatedAt).ToListAsync(cancellationToken)));
@@ -451,6 +504,7 @@ public sealed record UpdateFeedRequest(string Name, string? Description, int Pol
 public sealed record FavoriteRequest(bool IsFavorite);
 public sealed record HiddenRequest(bool IsHidden);
 public sealed record ReadRequest(bool IsRead);
+public sealed record UnlockRequest(string? Password);
 public sealed record ArticleResponse(
     long Id,
     Guid FeedId,

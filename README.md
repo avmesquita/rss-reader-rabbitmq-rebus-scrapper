@@ -117,6 +117,10 @@ Copie o arquivo `.env.example` para `.env` e ajuste os valores antes de iniciar 
 - `RABBITMQ_ARTICLE_QUEUE`: fila dedicada ao processamento de artigos e extração do scrapper.
 - `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`: credenciais do pgAdmin.
 - `DEBUG_ENABLED`: habilita o painel operacional e endpoints de debug na API. Deve permanecer desligado em ambientes públicos.
+- `WRITE_ACCESS_PASSWORD`: senha para liberar operações de escrita na plataforma. É obrigatória para criar, editar, excluir, favoritar, marcar como lida ou inibir notícias. Sem ela, a API bloqueia escritas.
+- `CONTACT_EMAIL`: endereço mostrado no convite para contratar hospedagem do portal.
+
+O conteúdo e a leitura das notícias permanecem públicos. Ao tentar uma operação protegida, o portal solicita a senha e a mantém válida por até 12 horas na sessão atual do navegador. A API valida um token assinado em cada operação de escrita, portanto o bloqueio também vale para chamadas diretas. Configure `WRITE_ACCESS_PASSWORD` com uma senha longa e exclusiva e publique o portal com HTTPS.
 
 ### Ajustes de ingestão e processamento
 

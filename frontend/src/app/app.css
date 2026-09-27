@@ -31,6 +31,20 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr); }
 .favorites-filter { grid-column: 1 / -1; justify-self: start; padding: 9px 14px; background: transparent; border: 1px solid #aeb7aa; color: #68756a; }
 .favorites-filter.active { color: #fffaf0; background: #d94f35; border-color: #d94f35; }
+.write-access-overlay { position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; padding: 22px; background: rgb(11 21 16 / 56%); backdrop-filter: blur(3px); }
+.write-access-dialog { width: min(480px, 100%); padding: 32px; border: 1px solid #dedbd1; border-radius: 16px; background: #fffaf0; color: #17221d; box-shadow: 0 22px 70px rgb(0 0 0 / 28%); }
+.write-access-dialog h2 { margin: 10px 0 8px; font-size: clamp(1.65rem, 5vw, 2.2rem); line-height: 1.1; }
+.write-access-dialog > p { color: #68756a; line-height: 1.5; }
+.write-access-dialog form { display: grid; gap: 9px; margin-top: 20px; }
+.write-access-dialog form label { color: #68756a; font-size: .82rem; }
+.write-access-dialog form input { border: 1px solid #aeb7aa; border-radius: 8px; background: #fffdf7; }
+.access-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 7px; }
+.access-actions button { padding: 10px 14px; border-radius: 8px; }
+.access-actions .access-cancel { border: 1px solid #c9c7bd; background: transparent; color: #68756a; }
+.access-error { color: #a83220 !important; font-size: .84rem; }
+.access-status { font-size: .84rem; }
+.hosting-contact { display: inline-block; margin-top: 22px; color: #bd482f; font-size: .88rem; font-weight: 600; text-decoration: none; }
+.hosting-contact:hover { text-decoration: underline; }
 @media (max-width: 760px) {
 	main { padding: 26px 18px 50px; }
 	header { align-items: start; gap: 20px; flex-direction: column; }

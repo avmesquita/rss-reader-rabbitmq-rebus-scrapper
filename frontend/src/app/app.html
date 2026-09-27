@@ -16,7 +16,7 @@
       </div>
       @if (installPrompt) { <button class="install-trigger" (click)="installApp()">Instalar aplicativo <span aria-hidden="true">↓</span></button> }
       <div class="language-tools"><span>Traduzir página</span><div id="google_translate_element"></div></div>
-      <button class="dashboard-trigger" (click)="openDashboard()">Dashboard <span aria-hidden="true">↗</span></button>
+      <button class="dashboard-trigger" (click)="requestDashboard()">Dashboard <span aria-hidden="true">↗</span></button>
     </div>
   </header>
 
@@ -81,6 +81,35 @@
     </section>
   </div>
 </main>
+@if (accessPromptOpen) {
+  <div class="write-access-overlay">
+    <section class="write-access-dialog" role="dialog" aria-modal="true" aria-labelledby="write-access-title">
+      <span class="kicker">ÁREA DE EDIÇÃO</span>
+      <h2 id="write-access-title">A leitura é pública. As alterações são protegidas.</h2>
+      <p>Informe a senha de administração para continuar com esta ação.</p>
+      @if (!writeAccess.statusLoaded()) {
+        <p class="access-status">Verificando a configuração de acesso...</p>
+      } @else if (writeAccess.statusUnavailable()) {
+        <p class="access-error" role="alert">Não foi possível consultar a configuração. Tente recarregar a página.</p>
+      } @else if (!writeAccess.configured()) {
+        <p class="access-error" role="alert">O acesso de edição ainda não foi configurado pelo administrador.</p>
+      } @else {
+        <form (ngSubmit)="unlockWriteAccess()">
+          <label for="write-access-password">Senha</label>
+          <input id="write-access-password" name="writeAccessPassword" type="password" [(ngModel)]="accessPassword" autocomplete="current-password" required autofocus />
+          @if (accessError) { <p class="access-error" role="alert">{{ accessError }}</p> }
+          <div class="access-actions">
+            <button type="submit" [disabled]="unlockingAccess || !accessPassword.trim()">{{ unlockingAccess ? 'Verificando...' : 'Desbloquear edição' }}</button>
+            <button type="button" class="access-cancel" (click)="cancelWriteAccess()">Continuar lendo</button>
+          </div>
+        </form>
+      }
+      @if (writeAccess.contactEmail(); as contactEmail) {
+        <a class="hosting-contact" [href]="'mailto:' + contactEmail + '?subject=Hospedagem%20do%20RSS%20Reader'">Quer hospedar seu próprio portal? Fale comigo <span aria-hidden="true">↗</span></a>
+      }
+    </section>
+  </div>
+}
 @if (showBackToTop) {
   <button class="back-to-top" (click)="scrollToTop()" aria-label="Voltar ao topo" title="Voltar ao topo">↑</button>
 }

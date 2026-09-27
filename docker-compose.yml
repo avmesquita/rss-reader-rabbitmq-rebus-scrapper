@@ -85,6 +85,8 @@ services:
       RabbitMq__Username: ${RABBITMQ_USER}
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
       Debug__Enabled: ${DEBUG_ENABLED:-false}
+      AccessControl__Password: ${WRITE_ACCESS_PASSWORD:-}
+      AccessControl__ContactEmail: ${CONTACT_EMAIL:-}
     networks:
       lab-rss-network:
         aliases:
