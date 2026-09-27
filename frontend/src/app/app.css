@@ -10,6 +10,7 @@ header p { font: 500 .8rem 'DM Mono', monospace; margin: 0; }
 .language-tools > span { text-transform: uppercase; letter-spacing: .08em; }
 #google_translate_element { min-height: 28px; }
 .dashboard-trigger { padding: 10px 14px; }
+.install-trigger { padding: 10px 14px; background: #0b1d15; }
 .refresh-status { display: flex; align-items: center; gap: 9px; margin: 18px 0 0; color: #68756a; font: .75rem 'DM Mono', monospace; }
 .pulse { width: 7px; height: 7px; border-radius: 50%; background: #d94f35; box-shadow: 0 0 0 5px rgb(217 79 53 / 12%); }
 .toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) auto repeat(3, minmax(130px, 180px)); gap: 10px; margin: 28px 0 34px; }

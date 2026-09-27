@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ArticleDialogComponent } from './components/dialogs/article-dialog/article-dialog.component';
@@ -8,6 +8,11 @@ import { Article, Feed } from './models';
 import { ArticleQuery, ArticleService } from './services/article.service';
 import { FeedService } from './services/feed.service';
 import { MatButtonModule } from '@angular/material/button';
+
+interface InstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
 @Component({
   selector: 'app-root',
@@ -34,9 +39,30 @@ export class App implements OnInit, OnDestroy {
   protected categories = ['Todas'];
   protected favoritesOnly = false;
   protected secondsUntilRefresh: number | null = null;
+  protected installPrompt: InstallPromptEvent | null = null;
   private refreshTimer?: ReturnType<typeof setInterval>;
 
   protected readonly pageSizes = [10, 25, 50, 100];
+
+  @HostListener('window:beforeinstallprompt', ['$event'])
+  captureInstallPrompt(event: Event): void {
+    event.preventDefault();
+    this.installPrompt = event as InstallPromptEvent;
+  }
+
+  @HostListener('window:appinstalled')
+  appInstalled(): void {
+    this.installPrompt = null;
+  }
+
+  protected async installApp(): Promise<void> {
+    if (!this.installPrompt)
+      return;
+    const prompt = this.installPrompt;
+    this.installPrompt = null;
+    await prompt.prompt();
+    await prompt.userChoice;
+  }
 
   protected get totalPages(): number { return this.totalPageCount; }
 
