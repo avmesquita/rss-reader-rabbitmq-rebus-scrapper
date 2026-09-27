@@ -41,7 +41,7 @@ API
 <img width="1482" height="935" alt="image" src="https://github.com/user-attachments/assets/4a28ff1c-4237-445c-8bf4-1d882eceadd6" />
 
 RabbitMQ
-<img width="1058" height="480" alt="image" src="https://github.com/user-attachments/assets/38e63d78-4ca8-45d1-8df3-ec80492d75a2" />
+<img width="1027" height="461" alt="image" src="https://github.com/user-attachments/assets/60fdd833-f306-4e42-9d53-f0e1c18ab2a2" />
 
 Execução (docker compose up -d --build --scale rss_article_worker=2)
 <img width="1318" height="545" alt="image" src="https://github.com/user-attachments/assets/72f64d53-51cd-4572-b80e-d179636536fa" />
