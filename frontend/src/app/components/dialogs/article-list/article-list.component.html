@@ -3,6 +3,8 @@
   <article class="story-card" (click)="selectArticle(article)" tabindex="0">
     @if (imageSource(article); as image) {
       <img [src]="image" [alt]="''" loading="lazy" />
+    } @else {
+      <img class="fake-image" loading="lazy" style="width: 1px!important; ">
     }
     <div class="story-body">
       <div class="story-meta">
