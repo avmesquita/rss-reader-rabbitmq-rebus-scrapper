@@ -1,4 +1,4 @@
-# RSS Reader
+# RSS Reader | Leituras em Movimento.
 
 [![CI](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml)
 
@@ -14,6 +14,12 @@ O projeto combina uma API ASP.NET Core, um worker de ingestão, um worker dedica
 - extração, deduplicação e persistência dos artigos
 
 Essa divisão é implementada com RabbitMQ como broker de mensagens e Rebus como biblioteca de mensageria, permitindo desacoplamento entre a API, o worker de feeds e o article worker. O padrão elimina acoplamento síncrono entre produção e processamento, torna a ingestão tolerante a picos de carga e facilita a escalabilidade horizontal por filas e workers independentes.
+
+---
+
+<img width="1024" height="506" alt="image" src="https://github.com/user-attachments/assets/0b891d9f-d11b-4660-ab3f-5c1ec7416cf9" />
+
+---
 
 ## Screenshots
 
