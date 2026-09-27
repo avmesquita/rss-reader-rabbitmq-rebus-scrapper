@@ -14,6 +14,18 @@ interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+interface SavedViewState {
+  search: string;
+  category: string;
+  feedId: string;
+  periodHours: number;
+  sort: string;
+  pageSize: number;
+  page: number;
+  favoritesOnly: boolean;
+  articleLayout: 'list' | 'grid';
+}
+
 @Component({
   selector: 'app-root',
   imports: [FormsModule, ArticleListComponent, MatButtonModule],
@@ -21,6 +33,7 @@ interface InstallPromptEvent extends Event {
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
+  private readonly viewStateKey = 'rss-reader.view-state.v1';
   private readonly articleService = inject(ArticleService);
   private readonly feedService = inject(FeedService);
   private readonly dialog = inject(MatDialog);
@@ -72,15 +85,18 @@ export class App implements OnInit, OnDestroy {
 
   protected changePageSize(): void {
     this.page = 1;
+    this.saveViewState();
     this.loadArticles();
   }
 
   protected goToPage(page: number): void {
     this.page = Math.min(Math.max(Number(page), 1), this.totalPages);
+    this.saveViewState();
     this.loadArticles();
   }
 
   ngOnInit(): void {
+    this.restoreViewState();
     this.load();
     this.refreshTimer = setInterval(() => this.updateRefreshCountdown(), 1000);
   }
@@ -150,12 +166,63 @@ export class App implements OnInit, OnDestroy {
 
   protected query(): void {
     this.page = 1;
+    this.saveViewState();
     this.loadArticles();
   }
 
   protected filtersChanged(): void {
     this.page = 1;
+    this.saveViewState();
     this.loadArticles();
+  }
+
+  protected toggleFavorites(): void {
+    this.favoritesOnly = !this.favoritesOnly;
+    this.filtersChanged();
+  }
+
+  protected setArticleLayout(layout: 'list' | 'grid'): void {
+    this.articleLayout = layout;
+    this.saveViewState();
+  }
+
+  private restoreViewState(): void {
+    try {
+      const raw = localStorage.getItem(this.viewStateKey);
+      if (!raw)
+        return;
+      const saved = JSON.parse(raw) as Partial<SavedViewState>;
+      if (typeof saved.search === 'string') this.search = saved.search;
+      if (typeof saved.category === 'string') this.category = saved.category;
+      if (typeof saved.feedId === 'string') this.feedId = saved.feedId;
+      if ([0, 24, 168, 720].includes(Number(saved.periodHours))) this.periodHours = Number(saved.periodHours);
+      if (saved.sort === 'published' || saved.sort === 'collected') this.sort = saved.sort;
+      if ([0, ...this.pageSizes].includes(Number(saved.pageSize))) this.pageSize = Number(saved.pageSize);
+      if (Number.isInteger(saved.page) && Number(saved.page) > 0) this.page = Number(saved.page);
+      if (typeof saved.favoritesOnly === 'boolean') this.favoritesOnly = saved.favoritesOnly;
+      if (saved.articleLayout === 'list' || saved.articleLayout === 'grid') this.articleLayout = saved.articleLayout;
+    } catch {
+      // Storage may be unavailable or contain invalid data; use the default view.
+    }
+  }
+
+  private saveViewState(): void {
+    const state: SavedViewState = {
+      search: this.search,
+      category: this.category,
+      feedId: this.feedId,
+      periodHours: this.periodHours,
+      sort: this.sort,
+      pageSize: this.pageSize,
+      page: this.page,
+      favoritesOnly: this.favoritesOnly,
+      articleLayout: this.articleLayout
+    };
+    try {
+      localStorage.setItem(this.viewStateKey, JSON.stringify(state));
+    } catch {
+      // The app remains usable when browser storage is disabled or full.
+    }
   }
 
   private articleQuery(): ArticleQuery {

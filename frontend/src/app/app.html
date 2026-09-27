@@ -31,10 +31,10 @@
       @for (size of pageSizes; track size) { <option [ngValue]="size">{{ size }} por página</option> }
       <option [ngValue]="0">Todas</option>
     </select>
-    <button class="favorites-filter" [class.active]="favoritesOnly" (click)="favoritesOnly = !favoritesOnly; filtersChanged()" [attr.aria-pressed]="favoritesOnly">★ Favoritos</button>
+    <button class="favorites-filter" [class.active]="favoritesOnly" (click)="toggleFavorites()" [attr.aria-pressed]="favoritesOnly">★ Favoritos</button>
     <div class="view-toggle" role="group" aria-label="Visualização dos artigos">
-      <button [class.active]="articleLayout === 'list'" (click)="articleLayout = 'list'" [attr.aria-pressed]="articleLayout === 'list'">Lista</button>
-      <button [class.active]="articleLayout === 'grid'" (click)="articleLayout = 'grid'" [attr.aria-pressed]="articleLayout === 'grid'">2 por linha</button>
+      <button [class.active]="articleLayout === 'list'" (click)="setArticleLayout('list')" [attr.aria-pressed]="articleLayout === 'list'">Lista</button>
+      <button [class.active]="articleLayout === 'grid'" (click)="setArticleLayout('grid')" [attr.aria-pressed]="articleLayout === 'grid'">2 por linha</button>
     </div>
   </section>
 
