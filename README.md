@@ -24,7 +24,7 @@ Essa divisão é implementada com RabbitMQ como broker de mensagens e Rebus como
 ## Screenshots
 
 Home
-<img width="1018" height="964" alt="image" src="https://github.com/user-attachments/assets/a9cb0dc7-e60c-4962-af91-0cc196833376" />
+<img width="1018" height="964" alt="image" src="https://github.com/user-attachments/assets/fbc0dda1-edc9-4607-a703-4e148fb7d4cb" />
 
 ### Dashboard
 
