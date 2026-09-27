@@ -27,6 +27,7 @@ export class App implements OnInit, OnDestroy {
   protected periodHours = 168;
   protected sort = 'published';
   protected pageSize = 10;
+  protected articleLayout: 'list' | 'grid' = 'list';
   protected page = 1;
   protected totalCount = 0;
   protected totalPageCount = 1;

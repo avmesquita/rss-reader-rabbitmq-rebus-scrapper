@@ -19,6 +19,9 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr); }
 .favorites-filter { grid-column: 1 / -1; justify-self: start; padding: 9px 14px; background: transparent; border: 1px solid #aeb7aa; color: #68756a; }
 .favorites-filter.active { color: #fffaf0; background: #d94f35; border-color: #d94f35; }
+.view-toggle { grid-column: 1 / -1; justify-self: end; display: flex; border: 1px solid #aeb7aa; }
+.view-toggle button { padding: 9px 14px; background: transparent; color: #68756a; }
+.view-toggle button.active { background: #0b1d15; color: #fffaf0; }
 @media (max-width: 760px) {
 	main { padding: 26px 18px 50px; }
 	header { align-items: start; gap: 20px; flex-direction: column; }
