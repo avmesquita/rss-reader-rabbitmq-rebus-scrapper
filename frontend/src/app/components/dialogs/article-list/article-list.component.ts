@@ -13,6 +13,7 @@ import { articleImageSource } from '../../../utils/article-image.util';
 })
 export class ArticleListComponent {
   readonly articles = input.required<Article[]>();
+  readonly layout = input<'list' | 'grid'>('list');
   readonly page = input.required<number>();
   readonly totalPages = input.required<number>();
   readonly pageOptions = input.required<number[]>();

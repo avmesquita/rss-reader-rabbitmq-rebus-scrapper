@@ -32,12 +32,17 @@
       <option [ngValue]="0">Todas</option>
     </select>
     <button class="favorites-filter" [class.active]="favoritesOnly" (click)="favoritesOnly = !favoritesOnly; filtersChanged()" [attr.aria-pressed]="favoritesOnly">★ Favoritos</button>
+    <div class="view-toggle" role="group" aria-label="Visualização dos artigos">
+      <button [class.active]="articleLayout === 'list'" (click)="articleLayout = 'list'" [attr.aria-pressed]="articleLayout === 'list'">Lista</button>
+      <button [class.active]="articleLayout === 'grid'" (click)="articleLayout = 'grid'" [attr.aria-pressed]="articleLayout === 'grid'">2 por linha</button>
+    </div>
   </section>
 
   <div class="layout">
     <section class="stories">
       <app-article-list
         [articles]="articles"
+        [layout]="articleLayout"
         [page]="page"
         [totalPages]="totalPages"
         [pageOptions]="pageOptions"
