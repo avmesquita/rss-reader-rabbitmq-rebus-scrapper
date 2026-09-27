@@ -18,18 +18,18 @@ Essa divisão é implementada com RabbitMQ como broker de mensagens e Rebus como
 ## Screenshots
 
 Home
-<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/c2dee2d7-4f02-4aff-b8ab-e7c1668506ab" />
+<img width="1268" height="961" alt="image" src="https://github.com/user-attachments/assets/77788935-0182-4202-9c87-c15673e5c8fd" />
 
 ### Dashboard
 
 Dados gerais
-<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/80384cd1-cd23-45db-893b-8753f1a2f1ab" />
+<img width="1268" height="961" alt="image" src="https://github.com/user-attachments/assets/1d5678b4-ff5e-4bf1-87eb-a533b1dd044b" />
 
 Fontes de RSS
-<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/079dbb65-a16e-4d6e-b9ef-f06d7a13820e" />
+<img width="1268" height="961" alt="image" src="https://github.com/user-attachments/assets/870e9d99-403c-4eaf-b2c6-f6395db140e0" />
 
 Telemetria
-<img width="1315" height="926" alt="image" src="https://github.com/user-attachments/assets/98b9435a-f835-464f-a325-cbacde3538ac" />
+<img width="1268" height="961" alt="image" src="https://github.com/user-attachments/assets/315a77d7-4b0f-42a4-b507-2ee658cee7d0" />
 
 ## Começo rápido
 
