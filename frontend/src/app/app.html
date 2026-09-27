@@ -2,7 +2,7 @@
 <main>
   <header>
     <div><span class="kicker">RSS READER</span><h1>Leituras em movimento.</h1></div>
-    <div class="header-actions"><p>{{ totalCount }} histórias visíveis</p><div class="language-tools"><span>Traduzir página</span><div id="google_translate_element"></div></div><button class="dashboard-trigger" (click)="openDashboard()">Dashboard <span aria-hidden="true">↗</span></button></div>
+    <div class="header-actions"><p>{{ totalCount }} histórias visíveis</p>@if (installPrompt) { <button class="install-trigger" (click)="installApp()">Instalar aplicativo <span aria-hidden="true">↓</span></button> }<div class="language-tools"><span>Traduzir página</span><div id="google_translate_element"></div></div><button class="dashboard-trigger" (click)="openDashboard()">Dashboard <span aria-hidden="true">↗</span></button></div>
   </header>
 
   <div class="refresh-status"><span class="pulse"></span>{{ refreshLabel }} <span>·</span> última leitura registrada por fonte</div>
