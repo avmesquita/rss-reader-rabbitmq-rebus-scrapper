@@ -2,6 +2,8 @@ export interface Feed {
   id: string;
   name: string;
   url: string;
+  description?: string;
+  pollIntervalMinutes: number;
   createdAt: string;
   lastCheckedAt?: string;
   nextScheduledAt?: string;
@@ -26,6 +28,7 @@ export interface Article {
   publishedAt?: string;
   isFavorite: boolean;
   isHidden: boolean;
+  isRead: boolean;
   collectedAt: string;
 }
 
@@ -44,6 +47,7 @@ export interface Dashboard {
     visibleArticles: number;
     hiddenArticles: number;
     favorites: number;
+    readArticles: number;
   };
   feeds: Feed[];
 }
@@ -71,10 +75,36 @@ export interface RabbitQueue {
   consumers: number;
 }
 
+export interface QueueMessage {
+  payload: string;
+  payload_bytes: number;
+  redelivered: boolean;
+  exchange: string;
+  routing_key: string;
+  message_count: number;
+  properties: Record<string, unknown>;
+}
+
 export interface PurgeStats {
   purgedArticles: number;
   purgedFeeds: number;
   purgedImages: number;
   purgedErrors: number;
   purgedAt: string;
+  before: ArticleCounts;
+  after: ArticleCounts;
+}
+
+export interface ArticleCounts {
+  all: number;
+  read: number;
+  hidden: number;
+  favorites: number;
+}
+
+export interface ReadDeletionStats {
+  deletedArticles: number;
+  before: ArticleCounts;
+  after: ArticleCounts;
+  deletedAt: string;
 }

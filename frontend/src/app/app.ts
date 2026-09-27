@@ -23,6 +23,7 @@ interface SavedViewState {
   pageSize: number;
   page: number;
   favoritesOnly: boolean;
+  readStatus: 'all' | 'read' | 'unread';
   articleLayout: 'list' | 'grid';
 }
 
@@ -51,9 +52,15 @@ export class App implements OnInit, OnDestroy {
   protected totalPageCount = 1;
   protected categories = ['Todas'];
   protected favoritesOnly = false;
+  protected readStatus: 'all' | 'read' | 'unread' = 'all';
   protected secondsUntilRefresh: number | null = null;
   protected installPrompt: InstallPromptEvent | null = null;
+  protected showBackToTop = false;
+  protected newStoriesAvailable = 0;
+  protected updatingArticles = false;
   private refreshTimer?: ReturnType<typeof setInterval>;
+  private newStoriesTimer?: ReturnType<typeof setInterval>;
+  private knownAllArticleCount: number | null = null;
 
   protected readonly pageSizes = [10, 25, 50, 100];
 
@@ -61,6 +68,15 @@ export class App implements OnInit, OnDestroy {
   captureInstallPrompt(event: Event): void {
     event.preventDefault();
     this.installPrompt = event as InstallPromptEvent;
+  }
+
+  @HostListener('window:scroll')
+  updateBackToTopVisibility(): void {
+    this.showBackToTop = window.scrollY > 360;
+  }
+
+  protected scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   @HostListener('window:appinstalled')
@@ -99,11 +115,15 @@ export class App implements OnInit, OnDestroy {
     this.restoreViewState();
     this.load();
     this.refreshTimer = setInterval(() => this.updateRefreshCountdown(), 1000);
+    this.checkForNewStories(true);
+    this.newStoriesTimer = setInterval(() => this.checkForNewStories(), 60_000);
   }
 
   ngOnDestroy(): void {
     if (this.refreshTimer)
       clearInterval(this.refreshTimer);
+    if (this.newStoriesTimer)
+      clearInterval(this.newStoriesTimer);
   }
 
   protected load(): void {
@@ -140,7 +160,7 @@ export class App implements OnInit, OnDestroy {
       return 'Atualização em andamento';
     const hours = Math.floor(this.secondsUntilRefresh / 3600);
     const minutes = Math.floor((this.secondsUntilRefresh % 3600) / 60);
-    return hours ? `próxima atualização em ${hours}h ${minutes}min` : `próxima atualização em ${minutes}min`;
+    return hours ? `próxima atualização em ${hours} h ${minutes} min` : `próxima atualização em ${minutes} min`;
   }
 
   private updateRefreshCountdown(): void {
@@ -151,16 +171,55 @@ export class App implements OnInit, OnDestroy {
   }
 
   private loadArticles(): void {
+    this.updatingArticles = true;
     this.articleService.getArticles(this.articleQuery()).subscribe({
       next: result => {
         this.articles = result.items;
         this.totalCount = result.totalCount;
         this.totalPageCount = Math.max(1, result.totalPages);
         this.categories = ['Todas', ...result.categories];
-        if (this.page !== result.page)
+        if (this.page !== result.page) {
           this.page = result.page;
+          this.saveViewState();
+        }
+        this.updatingArticles = false;
       },
-      error: () => console.error('Não foi possível carregar as notícias.')
+      error: () => {
+        this.updatingArticles = false;
+        console.error('Não foi possível carregar as notícias.');
+      }
+    });
+  }
+
+  protected refreshArticles(): void {
+    if (this.newStoriesAvailable > 0)
+      this.page = 1;
+    this.newStoriesAvailable = 0;
+    this.saveViewState();
+    this.loadArticles();
+    this.checkForNewStories(true);
+  }
+
+  private checkForNewStories(resetBaseline = false): void {
+    this.articleService.getArticles({
+      page: 1,
+      pageSize: 1,
+      favoritesOnly: false,
+      readStatus: 'all',
+      periodHours: 0,
+      sort: 'collected',
+      search: '',
+      category: 'Todas',
+      feedId: 'Todas'
+    }).subscribe({
+      next: result => {
+        if (resetBaseline || this.knownAllArticleCount === null || result.totalCount < this.knownAllArticleCount) {
+          this.knownAllArticleCount = result.totalCount;
+          this.newStoriesAvailable = 0;
+          return;
+        }
+        this.newStoriesAvailable = Math.max(0, result.totalCount - this.knownAllArticleCount);
+      }
     });
   }
 
@@ -200,6 +259,7 @@ export class App implements OnInit, OnDestroy {
       if ([0, ...this.pageSizes].includes(Number(saved.pageSize))) this.pageSize = Number(saved.pageSize);
       if (Number.isInteger(saved.page) && Number(saved.page) > 0) this.page = Number(saved.page);
       if (typeof saved.favoritesOnly === 'boolean') this.favoritesOnly = saved.favoritesOnly;
+      if (saved.readStatus === 'all' || saved.readStatus === 'read' || saved.readStatus === 'unread') this.readStatus = saved.readStatus;
       if (saved.articleLayout === 'list' || saved.articleLayout === 'grid') this.articleLayout = saved.articleLayout;
     } catch {
       // Storage may be unavailable or contain invalid data; use the default view.
@@ -216,6 +276,7 @@ export class App implements OnInit, OnDestroy {
       pageSize: this.pageSize,
       page: this.page,
       favoritesOnly: this.favoritesOnly,
+      readStatus: this.readStatus,
       articleLayout: this.articleLayout
     };
     try {
@@ -230,6 +291,7 @@ export class App implements OnInit, OnDestroy {
       page: this.page,
       pageSize: this.pageSize,
       favoritesOnly: this.favoritesOnly,
+      readStatus: this.readStatus,
       periodHours: this.periodHours,
       sort: this.sort,
       search: this.search,
@@ -252,6 +314,17 @@ export class App implements OnInit, OnDestroy {
     this.articleService.setFavorite(article, isFavorite).subscribe({
       next: result => article.isFavorite = result.isFavorite,
       error: () => console.error('Não foi possível atualizar o favorito.')
+    });
+  }
+
+  protected toggleRead(article: Article): void {
+    this.articleService.setRead(article, !article.isRead).subscribe({
+      next: result => {
+        article.isRead = result.isRead;
+        if ((this.readStatus === 'read' && !result.isRead) || (this.readStatus === 'unread' && result.isRead))
+          this.loadArticles();
+      },
+      error: () => console.error('Não foi possível atualizar o estado de leitura.')
     });
   }
 

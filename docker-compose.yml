@@ -12,10 +12,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      lab-rss-network:
+        aliases:
+          - rss_postgres
 
   rss_pgadmin:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
+    profiles: ["manual"]
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
@@ -24,13 +31,22 @@ services:
       rss_postgres: { condition: service_healthy }
     volumes:
       - rss_pgadmin_data:/var/lib/pgadmin
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - lab-rss-network
 
   rss_adminer:
     image: adminer:latest
     restart: unless-stopped
+    profiles: ["manual"]
     ports: ["${ADMINER_HOST_PORT}:${ADMINER_PORT}"]
     depends_on:
       rss_postgres: { condition: service_healthy }
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - lab-rss-network
 
   rss_rabbitmq:
     image: rabbitmq:4-management-alpine
@@ -39,10 +55,18 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports: ["${RABBITMQ_HOST_PORT}:${RABBITMQ_PORT}", "${RABBITMQ_MANAGEMENT_HOST_PORT}:${RABBITMQ_MANAGEMENT_PORT}"]
     volumes: [rss_rabbitmq_data:/var/lib/rabbitmq]
+    networks:
+      lab-rss-network:
+        aliases:
+          - rss_rabbitmq
 
   rss_scrapper:
     image: amerkurev/scrapper:latest
     ports: ["${SCRAPPER_HOST_PORT}:${SCRAPPER_PORT}"]
+    networks:
+      lab-rss-network:
+        aliases:
+          - rss_scrapper
     volumes:
       - rss_scrapper_user_data:/home/pwuser/user_data
       - rss_scrapper_user_scripts:/home/pwuser/user_scripts
@@ -61,6 +85,10 @@ services:
       RabbitMq__Username: ${RABBITMQ_USER}
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
       Debug__Enabled: ${DEBUG_ENABLED:-false}
+    networks:
+      lab-rss-network:
+        aliases:
+          - rss_api
     depends_on:
       rss_postgres: { condition: service_healthy }
       rss_rabbitmq: { condition: service_started }
@@ -81,6 +109,10 @@ services:
       Ingestion__MaxParallelism: ${SCRAPPER_MAX_PARALLELISM:-2}
       Images__StoreAsBase64: ${STORE_IMAGES_AS_BASE64:-false}
       Images__MaxBytes: ${IMAGE_MAX_BYTES:-2000000}
+    networks:
+      lab-rss-network:
+        aliases:
+          - rss_worker
     depends_on:
       rss_postgres: { condition: service_healthy }
       rss_rabbitmq: { condition: service_started }
@@ -103,15 +135,29 @@ services:
       Ingestion__MaxParallelism: ${SCRAPPER_MAX_PARALLELISM:-1}
       Images__StoreAsBase64: ${STORE_IMAGES_AS_BASE64:-false}
       Images__MaxBytes: ${IMAGE_MAX_BYTES:-2000000}
+    networks:
+      lab-rss-network:
+        aliases:
+          - rss_article_worker
     depends_on:
       rss_postgres: { condition: service_healthy }
       rss_rabbitmq: { condition: service_started }
       rss_scrapper: { condition: service_started }
 
-  frontend:
+  rss_frontend:
     build: ./frontend
     ports: ["${FRONTEND_HOST_PORT}:${FRONTEND_PORT}"]
     depends_on: [rss_api]
+    networks:
+      - lab-rss-network
+      - lab-gateway
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=lab-gateway
+      - traefik.http.routers.rss.rule=Host(`rss.lab.local`)
+      - traefik.http.routers.rss.entrypoints=web
+      - traefik.http.routers.rss.service=rss-frontend
+      - traefik.http.services.rss-frontend.loadbalancer.server.port=80
 
 volumes:
   rss_postgres_data:
@@ -119,3 +165,10 @@ volumes:
   rss_scrapper_user_scripts:
   rss_rabbitmq_data:
   rss_pgadmin_data:
+
+networks:
+  lab-gateway:
+    external: true
+    name: lab-gateway
+  lab-rss-network:
+    driver: bridge

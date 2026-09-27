@@ -10,14 +10,7 @@
 
 <div mat-dialog-content>
   @if (tab === 'stats') {
-    @if (dashboard; as data) {
-      <div class="dashboard-stats">
-        <div><strong>{{ data.stats.visibleArticles }}</strong><span>visíveis</span></div>
-        <div><strong>{{ data.stats.totalArticles }}</strong><span>coletadas</span></div>
-        <div><strong>{{ data.stats.favorites }}</strong><span>favoritas</span></div>
-        <div><strong>{{ data.stats.hiddenArticles }}</strong><span>inibidas</span></div>
-      </div>
-    }
+    <app-statistics-panel />
   }
 
   @if (tab === 'feeds') {

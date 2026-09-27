@@ -1,0 +1,9 @@
+:host { display: block; position: relative; padding: 38px 42px 26px; background: #fffaf0; color: #0b1d15; }
+.close { position: absolute; top: 15px; right: 20px; background: transparent; color: #0b1d15; font-size: 1.8rem; padding: 0 8px; }
+.kicker { color: #68756a; font: 500 .72rem 'DM Mono', monospace; letter-spacing: .12em; }
+h2 { margin: 10px 0 18px; font-size: 1.8rem; }
+.diagnostic-item { border-top: 1px solid #c9c7bd; padding: 16px 0; }
+.diagnostic-item h3 { margin: 0 0 5px; overflow-wrap: anywhere; font-size: 1rem; }
+.diagnostic-item small { color: #68756a; }
+.diagnostic-item pre { max-height: 50vh; margin: 12px 0 0; padding: 12px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #17221d; color: #fffaf0; font: .78rem/1.45 'DM Mono', monospace; }
+@media (max-width: 600px) { :host { padding: 38px 22px 20px; } }

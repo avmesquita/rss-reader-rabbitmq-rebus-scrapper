@@ -10,9 +10,11 @@
 .status-bad { color: #f19a83; }
 .queue-list { display: grid; gap: 9px; margin-top: 20px; border-top: 1px solid #536057; padding-top: 16px; }
 .queue-list > strong { font-size: .85rem; }
-.queue { display: grid; gap: 3px; padding: 9px 0; border-bottom: 1px solid #536057; }
+.queue { display: grid; gap: 3px; width: 100%; padding: 9px 10px; border: 0; border-bottom: 1px solid #536057; text-align: left; background: transparent; color: inherit; }
+.queue:hover { background: #25332b; }
 .queue span { color: #fffaf0; font-weight: 600; }
 .queue small { color: #b9c6b8; font: .76rem 'DM Mono', monospace; }
+.diagnostic-link { padding: 0; background: transparent; color: #f19a83; text-align: left; font-size: .75rem; }
 
 @media (max-width: 760px) {
   .telemetry-toolbar { align-items: start; flex-direction: column; }

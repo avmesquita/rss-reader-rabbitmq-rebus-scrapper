@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace RssReader.Api;
@@ -52,6 +53,31 @@ public sealed class RabbitDiagnostics(HttpClient httpClient, IConfiguration conf
         {
             return new RabbitStatus(false, exception.Message, [], []);
         }
+    }
+
+    public async Task<JsonElement[]> GetMessagesAsync(string queueName, int count, CancellationToken cancellationToken)
+    {
+        var baseUrl = configuration["RabbitMq:ManagementUrl"] ?? "http://rss_rabbitmq:15672";
+        var username = configuration["RabbitMq:Username"];
+        var password = configuration["RabbitMq:Password"];
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            throw new InvalidOperationException("Credenciais do RabbitMQ não configuradas.");
+
+        var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{baseUrl.TrimEnd('/')}/api/queues/%2F/{Uri.EscapeDataString(queueName)}/get");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
+        request.Content = JsonContent.Create(new
+        {
+            count = Math.Clamp(count, 1, 100),
+            ackmode = "ack_requeue_true",
+            encoding = "auto",
+            truncate = 50000
+        });
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<JsonElement[]>(cancellationToken: cancellationToken) ?? [];
     }
 }
 

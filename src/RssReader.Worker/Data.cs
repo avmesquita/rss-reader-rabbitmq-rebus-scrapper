@@ -30,6 +30,8 @@ public sealed class WorkerFeed
     public Guid Id { get; set; }
     public required string Name { get; set; }
     public required string Url { get; set; }
+    public string? Description { get; set; }
+    public int PollIntervalMinutes { get; set; }
     public bool IsActive { get; set; }
     public DateTimeOffset? LastCheckedAt { get; set; }
     public DateTimeOffset? NextScheduledAt { get; set; }

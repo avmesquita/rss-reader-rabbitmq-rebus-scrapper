@@ -46,4 +46,10 @@ builder.Services.AddRebus((configure, _) => configure
 builder.Services.AutoRegisterHandlersFromAssemblyOf<FeedIngestionHandler>();
 
 var host = builder.Build();
+await using (var scope = host.Services.CreateAsyncScope())
+{
+	var db = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<WorkerDbContext>>().CreateDbContextAsync();
+	await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"Description\" text;");
+	await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"PollIntervalMinutes\" integer NOT NULL DEFAULT 0;");
+}
 host.Run();

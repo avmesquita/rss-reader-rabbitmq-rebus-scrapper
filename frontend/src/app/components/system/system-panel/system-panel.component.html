@@ -1,10 +1,52 @@
-<button mat-stroked-button color="warn" (click)="purgeData()" aria-label="Excluir Notícias > 30 dias"> Excluir Notícias > 30 dias</button>
+<button mat-stroked-button color="warn" (click)="purgeData()" [disabled]="refreshing" aria-label="Excluir notícias com mais de 30 dias">Excluir notícias com mais de 30 dias</button>
+<button mat-stroked-button color="warn" (click)="deleteReadArticles()" [disabled]="refreshing" aria-label="Excluir notícias lidas que não são favoritas">Excluir lidas não favoritas</button>
+@if (message) { <p role="status">{{ message }}</p> }
 
-<div mat-dialog-content> 
-  <p class="modal-meta">
-      <div class="dashboard-stats">
-        <div class="dashboard-text"><strong>Articles</strong><span>{{ purgeStats.purgedArticles }}</span></div>
-        <div class="dashboard-text"><strong>Errors</strong><span>{{ purgeStats.purgedErrors }}</span></div>
-        <div class="dashboard-text"><strong>At</strong><span>{{ purgeStats.purgedAt }}</span></div>
-      </div>
+<div class="purge-results">
+  <section>
+    <h3>Antes da limpeza</h3>
+    <dl>
+      <div><dt>Todas</dt><dd>{{ purgeStats.before.all }}</dd></div>
+      <div><dt>Lidas</dt><dd>{{ purgeStats.before.read }}</dd></div>
+      <div><dt>Inibidas</dt><dd>{{ purgeStats.before.hidden }}</dd></div>
+      <div><dt>Favoritas</dt><dd>{{ purgeStats.before.favorites }}</dd></div>
+    </dl>
+  </section>
+  <section>
+    <h3>Após a limpeza</h3>
+    <dl>
+      <div><dt>Todas</dt><dd>{{ purgeStats.after.all }}</dd></div>
+      <div><dt>Lidas</dt><dd>{{ purgeStats.after.read }}</dd></div>
+      <div><dt>Inibidas</dt><dd>{{ purgeStats.after.hidden }}</dd></div>
+      <div><dt>Favoritas</dt><dd>{{ purgeStats.after.favorites }}</dd></div>
+    </dl>
+  </section>
+  <p>Artigos removidos: {{ purgeStats.purgedArticles }} · Erros removidos: {{ purgeStats.purgedErrors }}</p>
+  @if (purgeStats.purgedAt) { <small>Limpeza em {{ purgeStats.purgedAt | date:'dd/MM/yyyy HH:mm' }}</small> }
 </div>
+
+@if (readDeletionStats; as stats) {
+  <div class="purge-results">
+    <h3>Exclusão de lidas não favoritas</h3>
+    <section>
+      <h3>Antes da exclusão</h3>
+      <dl>
+        <div><dt>Todas</dt><dd>{{ stats.before.all }}</dd></div>
+        <div><dt>Lidas</dt><dd>{{ stats.before.read }}</dd></div>
+        <div><dt>Inibidas</dt><dd>{{ stats.before.hidden }}</dd></div>
+        <div><dt>Favoritas preservadas</dt><dd>{{ stats.before.favorites }}</dd></div>
+      </dl>
+    </section>
+    <section>
+      <h3>Após a exclusão</h3>
+      <dl>
+        <div><dt>Todas</dt><dd>{{ stats.after.all }}</dd></div>
+        <div><dt>Lidas</dt><dd>{{ stats.after.read }}</dd></div>
+        <div><dt>Inibidas</dt><dd>{{ stats.after.hidden }}</dd></div>
+        <div><dt>Favoritas</dt><dd>{{ stats.after.favorites }}</dd></div>
+      </dl>
+    </section>
+    <p>Artigos removidos: {{ stats.deletedArticles }}</p>
+    <small>Exclusão em {{ stats.deletedAt | date:'dd/MM/yyyy HH:mm' }}</small>
+  </div>
+}

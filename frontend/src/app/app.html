@@ -7,6 +7,16 @@
 
   <div class="refresh-status"><span class="pulse"></span>{{ refreshLabel }} <span>·</span> última leitura registrada por fonte</div>
 
+  <div class="article-updates" role="status" aria-live="polite">
+    @if (newStoriesAvailable > 0) {
+      <span>{{ newStoriesAvailable }} {{ newStoriesAvailable === 1 ? 'nova história disponível' : 'novas histórias disponíveis' }}</span>
+      <button (click)="refreshArticles()" [disabled]="updatingArticles">{{ updatingArticles ? 'Atualizando...' : 'Ver novas histórias' }} ↻</button>
+    } @else {
+      <span>{{ updatingArticles ? 'Atualizando histórias...' : 'A lista é verificada automaticamente a cada minuto.' }}</span>
+      <button (click)="refreshArticles()" [disabled]="updatingArticles">{{ updatingArticles ? 'Atualizando...' : 'Atualizar histórias' }} ↻</button>
+    }
+  </div>
+
   <section class="toolbar">
     <input [(ngModel)]="search" (keyup.enter)="query()" placeholder="Buscar nas histórias..." />
     <button (click)="query()">Buscar</button>
@@ -27,15 +37,16 @@
       <option value="published">Mais recentes por publicação</option>
       <option value="collected">Mais recentes por coleta</option>
     </select>
+    <select [(ngModel)]="readStatus" (change)="filtersChanged()" aria-label="Filtrar por estado de leitura">
+      <option value="all">Lidas e não lidas</option>
+      <option value="read">Lidas</option>
+      <option value="unread">Não lidas</option>
+    </select>
     <select [(ngModel)]="pageSize" (change)="changePageSize()" aria-label="Quantidade por página">
       @for (size of pageSizes; track size) { <option [ngValue]="size">{{ size }} por página</option> }
       <option [ngValue]="0">Todas</option>
     </select>
     <button class="favorites-filter" [class.active]="favoritesOnly" (click)="toggleFavorites()" [attr.aria-pressed]="favoritesOnly">★ Favoritos</button>
-    <div class="view-toggle" role="group" aria-label="Visualização dos artigos">
-      <button [class.active]="articleLayout === 'list'" (click)="setArticleLayout('list')" [attr.aria-pressed]="articleLayout === 'list'">Lista</button>
-      <button [class.active]="articleLayout === 'grid'" (click)="setArticleLayout('grid')" [attr.aria-pressed]="articleLayout === 'grid'">2 por linha</button>
-    </div>
   </section>
 
   <div class="layout">
@@ -49,7 +60,12 @@
         (selected)="openArticle($event)"
         (favoriteToggled)="toggleFavorite($event)"
         (hidden)="hideArticle($event)"
-        (pageChanged)="goToPage($event)" />
+        (readToggled)="toggleRead($event)"
+        (pageChanged)="goToPage($event)"
+        (layoutChanged)="setArticleLayout($event)" />
     </section>
   </div>
 </main>
+@if (showBackToTop) {
+  <button class="back-to-top" (click)="scrollToTop()" aria-label="Voltar ao topo" title="Voltar ao topo">↑</button>
+}

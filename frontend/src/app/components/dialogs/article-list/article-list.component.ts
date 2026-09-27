@@ -21,7 +21,9 @@ export class ArticleListComponent {
   readonly selected = output<Article>();
   readonly favoriteToggled = output<Article>();
   readonly hidden = output<Article>();
+  readonly readToggled = output<Article>();
   readonly pageChanged = output<number>();
+  readonly layoutChanged = output<'list' | 'grid'>();
 
   imageSource(article: Article): string | null {
     return articleImageSource(article);
@@ -41,7 +43,16 @@ export class ArticleListComponent {
     this.hidden.emit(article);
   }
 
+  toggleRead(article: Article, event: Event): void {
+    event.stopPropagation();
+    this.readToggled.emit(article);
+  }
+
   changePage(page: number): void {
     this.pageChanged.emit(Number(page));
+  }
+
+  changeLayout(layout: 'list' | 'grid'): void {
+    this.layoutChanged.emit(layout);
   }
 }

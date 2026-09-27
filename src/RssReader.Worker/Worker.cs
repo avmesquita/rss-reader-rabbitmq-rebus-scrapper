@@ -34,8 +34,7 @@ public class Worker(
                 logger.LogError(exception, "Falha ao agendar a checagem das fontes.");
             }
 
-            var intervalHours = Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2);
-            await Task.Delay(TimeSpan.FromHours(intervalHours), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
         }
     }
 

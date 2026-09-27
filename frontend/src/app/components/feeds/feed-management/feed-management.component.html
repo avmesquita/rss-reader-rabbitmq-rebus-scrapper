@@ -3,6 +3,8 @@
   <div class="feed-form">
     <input [(ngModel)]="feedName" placeholder="Nome da fonte" />
     <input [(ngModel)]="feedUrl" placeholder="https://exemplo.com/rss.xml" />
+    <input [(ngModel)]="feedDescription" placeholder="Descrição (opcional)" />
+    <label>Intervalo (minutos; 0 usa o padrão global)<input type="number" min="0" max="10080" step="30" [(ngModel)]="feedPollIntervalMinutes" /></label>
     <button (click)="addFeed()" [disabled]="!feedName || !feedUrl">Adicionar fonte</button>
   </div>
 </div>
@@ -11,12 +13,28 @@
   <span class="kicker">FONTES ATIVAS</span>
   @for (feed of feeds; track feed.id) {
     <div class="feed">
-      <span>
+      <div class="feed-info">
         <strong>{{ feed.name }}</strong>
-        <small>{{ feed.lastCheckedAt ? 'Lida ' + (feed.lastCheckedAt | date:'dd/MM HH:mm') : 'Ainda não lida' }} · {{ feed.lastCollectedCount }} notícias</small>
-        <small>{{ feed.lastError || feed.url }}</small>
-      </span>
+        <small>{{ feed.lastCheckedAt ? 'Última leitura ' + (feed.lastCheckedAt | date:'dd/MM HH:mm') : 'Ainda não consultada' }} · {{ feed.lastCollectedCount }} novas nesta rodada · próxima {{ feed.nextScheduledAt ? (feed.nextScheduledAt | date:'dd/MM HH:mm') : 'não agendada' }}</small>
+        @if (feed.description) { <span class="feed-description">{{ feed.description }}</span> }
+        <small>URL: {{ feed.url }} · intervalo: {{ feed.pollIntervalMinutes > 0 ? feed.pollIntervalMinutes + ' min' : 'padrão global' }}</small>
+        @if (feed.lastError) { <small class="feed-error">Erro da última rodada: {{ feed.lastError }}</small> }
+        @if (editingFeedId === feed.id) {
+          <div class="feed-edit">
+            <label>Nome da fonte
+              <input [(ngModel)]="editName" required aria-label="Nome da fonte" />
+            </label>
+            <textarea [(ngModel)]="editDescription" placeholder="Descrição da fonte" aria-label="Descrição da fonte"></textarea>
+            <label>Intervalo de consulta em minutos (0 = padrão global)
+              <input type="number" min="0" max="10080" step="30" [(ngModel)]="editPollIntervalMinutes" />
+            </label>
+            <span><button (click)="saveFeed(feed)" [disabled]="savingFeedId === feed.id || !editName.trim()">{{ savingFeedId === feed.id ? 'Salvando...' : 'Salvar' }}</button><button class="cancel-edit" (click)="cancelEdit()">Cancelar</button></span>
+            @if (editMessage) { <small class="feed-error" role="alert">{{ editMessage }}</small> }
+          </div>
+        }
+      </div>
       <span class="feed-actions">
+        <button class="edit-feed" (click)="editingFeedId === feed.id ? cancelEdit() : startEdit(feed)" [attr.aria-label]="'Editar ' + feed.name">✎</button>
         <button class="refresh-feed" (click)="refreshFeed(feed)" [disabled]="isRefreshing(feed)" [attr.aria-label]="'Atualizar ' + feed.name">↻</button>
         <button class="delete-feed" (click)="deleteFeed(feed)" aria-label="Excluir fonte">×</button>
       </span>

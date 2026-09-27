@@ -1,6 +1,8 @@
 using System.Net;
 using System.ServiceModel.Syndication;
 using System.Xml;
+using System.Xml.Linq;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Rebus.Bus;
 using Rebus.Handlers;
@@ -52,9 +54,19 @@ public sealed class FeedIngestionHandler(
         {
             using var response = await client.GetAsync(message.FeedUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var reader = XmlReader.Create(stream, new XmlReaderSettings { Async = true });
+            var xmlBytes = await response.Content.ReadAsByteArrayAsync();
+            var document = await LoadXmlDocumentAsync(xmlBytes, response.Content.Headers.ContentType?.CharSet);
+            if (document.Root?.Name.LocalName == "rss" && (string?)document.Root.Attribute("version") != "2.0")
+            {
+                logger.LogInformation("Normalizando versão RSS {RssVersion} para leitura do feed {FeedId}.",
+                    (string?)document.Root.Attribute("version") ?? "não informada", message.FeedId);
+                document.Root.SetAttributeValue("version", "2.0");
+            }
+            using var reader = document.CreateReader();
             var feed = SyndicationFeed.Load(reader);
+            source.Description = feed.Description?.Text?.Trim() is { Length: > 0 } description
+                ? description
+                : source.Description;
             var commands = new List<ProcessArticleCommand>();
 
             foreach (var item in feed.Items)
@@ -87,7 +99,7 @@ public sealed class FeedIngestionHandler(
             run.ItemCount = commands.Count;
             run.Status = commands.Count == 0 ? "Succeeded" : "Queued";
             source.LastCheckedAt = DateTimeOffset.UtcNow;
-            source.NextScheduledAt = source.LastCheckedAt.Value.AddHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
+            source.NextScheduledAt = source.LastCheckedAt.Value.Add(GetPollInterval(source));
             source.LastError = commands.Count == 0 ? "O feed não retornou itens com URL válida." : null;
             source.LastCollectedCount = 0;
             await db.SaveChangesAsync();
@@ -104,7 +116,7 @@ public sealed class FeedIngestionHandler(
             run.Error = exception.Message[..Math.Min(exception.Message.Length, 500)];
             run.ErrorCount++;
             source.LastCheckedAt = DateTimeOffset.UtcNow;
-            source.NextScheduledAt = source.LastCheckedAt.Value.AddHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
+            source.NextScheduledAt = source.LastCheckedAt.Value.Add(GetPollInterval(source));
             source.LastError = run.Error;
 
             db.IngestionErrors.Add(new WorkerIngestionError
@@ -119,6 +131,51 @@ public sealed class FeedIngestionHandler(
             
             logger.LogWarning(exception, "Falha ao ler/enfileirar o feed {FeedId}.", message.FeedId);
             throw;
+        }
+    }
+
+    private TimeSpan GetPollInterval(WorkerFeed feed) => feed.PollIntervalMinutes > 0
+        ? TimeSpan.FromMinutes(feed.PollIntervalMinutes)
+        : TimeSpan.FromHours(Math.Max(1, configuration.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
+
+    private async Task<XDocument> LoadXmlDocumentAsync(byte[] bytes, string? responseCharset)
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        try
+        {
+            await using var stream = new MemoryStream(bytes, writable: false);
+            return await XDocument.LoadAsync(stream, LoadOptions.None, CancellationToken.None);
+        }
+        catch (Exception firstError) when (firstError is XmlException or ArgumentException or NotSupportedException)
+        {
+            var fallbacks = new List<Encoding>();
+            if (!string.IsNullOrWhiteSpace(responseCharset))
+            {
+                try { fallbacks.Add(Encoding.GetEncoding(responseCharset.Trim(' ', '\'', '"'))); }
+                catch (ArgumentException) { }
+            }
+            fallbacks.Add(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false));
+            fallbacks.Add(Encoding.Latin1);
+
+            foreach (var encoding in fallbacks.DistinctBy(encoding => encoding.CodePage))
+            {
+                try
+                {
+                    var text = encoding.GetString(bytes);
+                    if (text.Length > 0 && text[0] == '\uFEFF')
+                        text = text[1..];
+                    if (text.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var declarationEnd = text.IndexOf("?>", StringComparison.Ordinal);
+                        if (declarationEnd >= 0)
+                            text = text[(declarationEnd + 2)..];
+                    }
+                    return XDocument.Parse(text, LoadOptions.None);
+                }
+                catch (XmlException) { }
+            }
+
+            throw new XmlException("O XML do feed não pôde ser lido com a codificação declarada nem com UTF-8/Latin-1.", firstError);
         }
     }
 }

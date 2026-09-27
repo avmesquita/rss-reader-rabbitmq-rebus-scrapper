@@ -16,7 +16,15 @@ export class FeedManagementComponent implements OnInit {
   feeds: Feed[] = [];
   feedName = '';
   feedUrl = '';
+  feedDescription = '';
+  feedPollIntervalMinutes = 0;
+  editingFeedId: string | null = null;
+  editName = '';
+  editDescription = '';
+  editPollIntervalMinutes = 0;
   message = '';
+  editMessage = '';
+  savingFeedId: string | null = null;
   refreshingFeedIds = new Set<string>();
 
   ngOnInit(): void {
@@ -31,14 +39,45 @@ export class FeedManagementComponent implements OnInit {
   }
 
   addFeed(): void {
-    this.feedService.createFeed(this.feedName, this.feedUrl).subscribe({
+    this.feedService.createFeed(this.feedName, this.feedUrl, this.feedDescription, this.feedPollIntervalMinutes).subscribe({
       next: feed => {
         this.feeds = [feed, ...this.feeds];
         this.feedName = '';
         this.feedUrl = '';
+        this.feedDescription = '';
+        this.feedPollIntervalMinutes = 0;
         this.message = 'Concentrador incluído e enviado para processamento.';
       },
       error: () => this.message = 'Não foi possível incluir o concentrador.'
+    });
+  }
+
+  startEdit(feed: Feed): void {
+    this.editingFeedId = feed.id;
+    this.editName = feed.name;
+    this.editDescription = feed.description ?? '';
+    this.editPollIntervalMinutes = feed.pollIntervalMinutes;
+    this.editMessage = '';
+  }
+
+  cancelEdit(): void {
+    this.editingFeedId = null;
+  }
+
+  saveFeed(feed: Feed): void {
+    this.savingFeedId = feed.id;
+    this.editMessage = '';
+    this.feedService.updateFeed(feed, this.editName, this.editDescription, this.editPollIntervalMinutes).subscribe({
+      next: updated => {
+        this.feeds = this.feeds.map(item => item.id === updated.id ? updated : item);
+        this.editingFeedId = null;
+        this.message = `Configurações de "${updated.name}" salvas.`;
+      },
+      error: error => {
+        this.editMessage = error.error?.detail || error.error?.error || 'Não foi possível salvar as configurações da fonte.';
+        this.savingFeedId = null;
+      },
+      complete: () => this.savingFeedId = null
     });
   }
 
