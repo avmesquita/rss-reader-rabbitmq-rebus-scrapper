@@ -6,6 +6,14 @@ h2 { font-size: 1.45rem; line-height: 1.1; margin: 12px 0; }
 .kicker, .date, .category { font: 500 .72rem 'DM Mono', monospace; letter-spacing: .12em; color: #68756a; }
 header p { font: 500 .8rem 'DM Mono', monospace; margin: 0; }
 .header-actions { display: grid; justify-items: end; gap: 16px; }
+.appearance-tools { display: flex; align-items: center; gap: 8px; }
+.zoom-control { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid #e4e1d7; border-radius: 999px; background: #f3f1ea; color: #68756a; }
+.zoom-control button, .theme-toggle { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #405447; font-size: 1.1rem; }
+.zoom-control button:hover:not(:disabled), .theme-toggle:hover { background: #e9e6dc; }
+.zoom-control button:disabled { opacity: .35; cursor: default; }
+.zoom-control span { min-width: 42px; text-align: center; font: .72rem 'DM Mono', monospace; }
+.theme-toggle { border: 1px solid #e4e1d7; background: #f3f1ea; font-size: 1.15rem; }
+.appearance-tools button:focus-visible { outline: 2px solid #d94f35; outline-offset: 2px; }
 .language-tools { display: grid; justify-items: end; gap: 5px; color: #68756a; font: .72rem 'DM Mono', monospace; }
 .language-tools > span { text-transform: uppercase; letter-spacing: .08em; }
 #google_translate_element { min-height: 28px; }
