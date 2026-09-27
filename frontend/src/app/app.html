@@ -2,7 +2,22 @@
 <main>
   <header>
     <div><span class="kicker">RSS READER</span><h1>Leituras em movimento.</h1></div>
-    <div class="header-actions"><p>{{ totalCount }} histórias visíveis</p>@if (installPrompt) { <button class="install-trigger" (click)="installApp()">Instalar aplicativo <span aria-hidden="true">↓</span></button> }<div class="language-tools"><span>Traduzir página</span><div id="google_translate_element"></div></div><button class="dashboard-trigger" (click)="openDashboard()">Dashboard <span aria-hidden="true">↗</span></button></div>
+    <div class="header-actions">
+      <p>{{ totalCount }} histórias visíveis</p>
+      <div class="appearance-tools" aria-label="Aparência da página">
+        <div class="zoom-control" role="group" aria-label="Tamanho da interface">
+          <button type="button" (click)="adjustZoom(-10)" [disabled]="zoomLevel <= 70" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
+          <span>{{ zoomLevel }}%</span>
+          <button type="button" (click)="adjustZoom(10)" [disabled]="zoomLevel >= 130" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
+        </div>
+        <button class="theme-toggle" type="button" (click)="toggleTheme()" [attr.aria-pressed]="theme === 'dark'" [attr.aria-label]="theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'" [title]="theme === 'dark' ? 'Tema claro' : 'Tema escuro'">
+          <span aria-hidden="true">{{ theme === 'dark' ? '☀' : '☾' }}</span>
+        </button>
+      </div>
+      @if (installPrompt) { <button class="install-trigger" (click)="installApp()">Instalar aplicativo <span aria-hidden="true">↓</span></button> }
+      <div class="language-tools"><span>Traduzir página</span><div id="google_translate_element"></div></div>
+      <button class="dashboard-trigger" (click)="openDashboard()">Dashboard <span aria-hidden="true">↗</span></button>
+    </div>
   </header>
 
   <div class="refresh-status"><span class="pulse"></span>{{ refreshLabel }} <span>·</span> última leitura registrada por fonte</div>

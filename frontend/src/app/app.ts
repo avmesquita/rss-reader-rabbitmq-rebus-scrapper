@@ -25,6 +25,8 @@ interface SavedViewState {
   favoritesOnly: boolean;
   readStatus: 'all' | 'read' | 'unread';
   articleLayout: 'list' | 'grid';
+  zoomLevel: number;
+  theme: 'light' | 'dark';
 }
 
 @Component({
@@ -47,6 +49,8 @@ export class App implements OnInit, OnDestroy {
   protected sort = 'published';
   protected pageSize = 10;
   protected articleLayout: 'list' | 'grid' = 'list';
+  protected zoomLevel = 100;
+  protected theme: 'light' | 'dark' = 'light';
   protected page = 1;
   protected totalCount = 0;
   protected totalPageCount = 1;
@@ -113,6 +117,7 @@ export class App implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.restoreViewState();
+    this.applyAppearance();
     this.load();
     this.refreshTimer = setInterval(() => this.updateRefreshCountdown(), 1000);
     this.checkForNewStories(true);
@@ -146,7 +151,7 @@ export class App implements OnInit, OnDestroy {
   private loadFeeds(): void {
     this.feedService.getFeeds().subscribe({
       next: feeds => {
-        this.feeds = feeds;
+        this.feeds = [...feeds].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
         this.updateRefreshCountdown();
       },
       error: () => this.feeds = []
@@ -245,6 +250,23 @@ export class App implements OnInit, OnDestroy {
     this.saveViewState();
   }
 
+  protected adjustZoom(change: number): void {
+    this.zoomLevel = Math.min(130, Math.max(70, this.zoomLevel + change));
+    this.applyAppearance();
+    this.saveViewState();
+  }
+
+  protected toggleTheme(): void {
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    this.applyAppearance();
+    this.saveViewState();
+  }
+
+  private applyAppearance(): void {
+    document.documentElement.style.zoom = `${this.zoomLevel}%`;
+    document.documentElement.dataset['theme'] = this.theme;
+  }
+
   private restoreViewState(): void {
     try {
       const raw = localStorage.getItem(this.viewStateKey);
@@ -261,6 +283,8 @@ export class App implements OnInit, OnDestroy {
       if (typeof saved.favoritesOnly === 'boolean') this.favoritesOnly = saved.favoritesOnly;
       if (saved.readStatus === 'all' || saved.readStatus === 'read' || saved.readStatus === 'unread') this.readStatus = saved.readStatus;
       if (saved.articleLayout === 'list' || saved.articleLayout === 'grid') this.articleLayout = saved.articleLayout;
+      if ([70, 80, 90, 100, 110, 120, 130].includes(Number(saved.zoomLevel))) this.zoomLevel = Number(saved.zoomLevel);
+      if (saved.theme === 'light' || saved.theme === 'dark') this.theme = saved.theme;
     } catch {
       // Storage may be unavailable or contain invalid data; use the default view.
     }
@@ -277,7 +301,9 @@ export class App implements OnInit, OnDestroy {
       page: this.page,
       favoritesOnly: this.favoritesOnly,
       readStatus: this.readStatus,
-      articleLayout: this.articleLayout
+      articleLayout: this.articleLayout,
+      zoomLevel: this.zoomLevel,
+      theme: this.theme
     };
     try {
       localStorage.setItem(this.viewStateKey, JSON.stringify(state));

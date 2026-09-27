@@ -5,3 +5,89 @@
 body { margin: 0; }
 button, input { font: inherit; }
 button { cursor: pointer; }
+
+/* The article HTML is inserted with innerHTML, so these images do not get Angular's scoped CSS attribute. */
+app-article-dialog .formatted-content img {
+  display: block;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: min(55vh, 360px) !important;
+  object-fit: contain;
+  margin: 22px auto;
+  border-radius: 5px;
+}
+
+:root[data-theme='dark'] { color-scheme: dark; color: #e8ece5; background: #151a17; }
+:root[data-theme='dark'] body { color: #e8ece5; background: #151a17; }
+:root[data-theme='dark'] main { color: #e8ece5; }
+:root[data-theme='dark'] header { border-color: #354139; }
+:root[data-theme='dark'] .kicker,
+:root[data-theme='dark'] .language-tools,
+:root[data-theme='dark'] .refresh-status,
+:root[data-theme='dark'] .article-updates,
+:root[data-theme='dark'] .story-card p,
+:root[data-theme='dark'] .empty,
+:root[data-theme='dark'] .feed small,
+:root[data-theme='dark'] .feed-description,
+:root[data-theme='dark'] .message,
+:root[data-theme='dark'] .stats-toolbar,
+:root[data-theme='dark'] .dashboard-tabs button,
+:root[data-theme='dark'] .diagnostic-item small { color: #b4c0b5 !important; }
+:root[data-theme='dark'] .story-card { border-color: #354139; }
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] textarea,
+:root[data-theme='dark'] .pagination select { color: #e8ece5; background: #202822; border-color: #526055; }
+:root[data-theme='dark'] select option { color: #e8ece5; background: #202822; }
+:root[data-theme='dark'] .favorites-filter { color: #c2cdc3; border-color: #526055; }
+:root[data-theme='dark'] .favorites-filter.active { color: #fffaf0; }
+:root[data-theme='dark'] .zoom-control,
+:root[data-theme='dark'] .theme-toggle { color: #d8e0d7; background: #202822; border-color: #526055; }
+:root[data-theme='dark'] .zoom-control button:hover:not(:disabled),
+:root[data-theme='dark'] .theme-toggle:hover { background: #354139; }
+:root[data-theme='dark'] .view-toggle { background: #202822; border-color: #354139; }
+:root[data-theme='dark'] .view-toggle button.active { color: #e8ece5; background: #405447; }
+:root[data-theme='dark'] .view-toggle button:hover:not(.active) { color: #e8ece5; background: #354139; }
+:root[data-theme='dark'] .favorite:hover,
+:root[data-theme='dark'] .hide-article:hover,
+:root[data-theme='dark'] .read-toggle:hover { background: #354139; }
+:root[data-theme='dark'] .read-toggle.selected { color: #d2ead2; background: #294332; border-color: #405e48; }
+:root[data-theme='dark'] .favorite.selected { color: #ffc1aa; background: #493029; border-color: #664238; }
+:root[data-theme='dark'] .dashboard-stats,
+:root[data-theme='dark'] .purge-results dl { background: #354139; border-color: #354139; }
+:root[data-theme='dark'] .dashboard-stats > div,
+:root[data-theme='dark'] .purge-results dl > div { color: #e8ece5; background: #202822; }
+:root[data-theme='dark'] .dashboard-section,
+:root[data-theme='dark'] .dashboard-tabs,
+:root[data-theme='dark'] .diagnostic-item { border-color: #354139; }
+:root[data-theme='dark'] .feed { border-color: #354139; }
+:root[data-theme='dark'] .feed-form label,
+:root[data-theme='dark'] .feed-edit label { color: #b4c0b5; }
+:root[data-theme='dark'] .feed-actions .refresh-feed,
+:root[data-theme='dark'] .feed-actions .edit-feed { color: #c2cdc3; }
+:root[data-theme='dark'] .feed-actions .refresh-feed:hover,
+:root[data-theme='dark'] .feed-actions .edit-feed:hover { color: #e8ece5; background: #354139; }
+:root[data-theme='dark'] .feed-error { color: #ffad99 !important; }
+:root[data-theme='dark'] .dashboard-tabs button:hover { color: #e8ece5; background: #29332d; }
+:root[data-theme='dark'] .dashboard-tabs button.active { color: #e8ece5 !important; }
+:root[data-theme='dark'] .stats-toolbar button { color: #fffaf0; }
+:root[data-theme='dark'] .purge-results,
+:root[data-theme='dark'] .purge-results dt,
+:root[data-theme='dark'] .purge-results > p,
+:root[data-theme='dark'] .purge-results small { color: #b4c0b5; }
+:root[data-theme='dark'] app-article-dialog,
+:root[data-theme='dark'] app-dashboard-dialog,
+:root[data-theme='dark'] app-diagnostic-details,
+:root[data-theme='dark'] app-system-panel,
+:root[data-theme='dark'] .mat-mdc-dialog-container .mdc-dialog__surface { color: #e8ece5; background: #202822; }
+:root[data-theme='dark'] app-dashboard-dialog .close,
+:root[data-theme='dark'] app-article-dialog .close,
+:root[data-theme='dark'] app-diagnostic-details .close { color: #e8ece5; }
+:root[data-theme='dark'] app-dashboard-dialog .dashboard-tabs button.active { color: #e8ece5; }
+:root[data-theme='dark'] .pagination { color: #c2cdc3; }
+:root[data-theme='dark'] .pagination label { color: #c2cdc3; }
+:root[data-theme='dark'] .pagination button { color: #e8ece5; background: #202822; border-color: #526055; border-radius: 9px; }
+:root[data-theme='dark'] .pagination button:hover:not(:disabled) { background: #354139; border-color: #718275; }
+:root[data-theme='dark'] .pagination button:disabled { color: #7e8a80; background: #1b211d; border-color: #354139; }
+:root[data-theme='dark'] .pagination select { color: #e8ece5; background: #202822; border-color: #526055; }
