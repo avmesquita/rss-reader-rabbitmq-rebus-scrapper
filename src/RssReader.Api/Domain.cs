@@ -7,6 +7,8 @@ public sealed class Feed
     public Guid Id { get; set; }
     public required string Name { get; set; }
     public required string Url { get; set; }
+    public string? Description { get; set; }
+    public int PollIntervalMinutes { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset? LastCheckedAt { get; set; }
@@ -33,6 +35,8 @@ public sealed class Article
     public string? Category { get; set; }
     public bool IsFavorite { get; set; }
     public bool IsHidden { get; set; }
+    public bool IsRead { get; set; }
+    public bool IsDeleted { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }
     public DateTimeOffset CollectedAt { get; set; }
 }

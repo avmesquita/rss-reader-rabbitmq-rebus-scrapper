@@ -1,3 +1,23 @@
+<div class="list-toolbar">
+  <div class="view-toggle" role="group" aria-label="Visualização dos artigos">
+    <button [class.active]="layout() === 'list'" (click)="changeLayout('list')" [attr.aria-pressed]="layout() === 'list'">Lista</button>
+    <button [class.active]="layout() === 'grid'" (click)="changeLayout('grid')" [attr.aria-pressed]="layout() === 'grid'">2 por linha</button>
+  </div>
+  @if (totalPages() > 1) {
+    <nav class="pagination top-pagination" aria-label="Paginação superior">
+      <button (click)="changePage(page() - 1)" [disabled]="page() === 1" aria-label="Página anterior">←</button>
+      <label>
+        Página
+        <select [ngModel]="page()" (ngModelChange)="changePage($event)" aria-label="Selecionar página no topo">
+          @for (pageNumber of pageOptions(); track pageNumber) { <option [ngValue]="pageNumber">{{ pageNumber }}</option> }
+        </select>
+        de {{ totalPages() }}
+      </label>
+      <button (click)="changePage(page() + 1)" [disabled]="page() === totalPages()" aria-label="Próxima página">→</button>
+    </nav>
+  }
+</div>
+
 <div class="story-list" [class.grid-view]="layout() === 'grid'">
 @for (article of articles(); track article.id) {
   <article class="story-card" (click)="selectArticle(article)" tabindex="0">
@@ -10,6 +30,7 @@
       <div class="story-meta">
         <span class="date">{{ article.collectedAt | date:'dd MMM yyyy, HH:mm' }}</span>
         <span class="story-actions">
+          <button class="read-toggle" [class.selected]="article.isRead" (click)="toggleRead(article, $event)" [attr.aria-label]="article.isRead ? 'Marcar como não lida' : 'Marcar como lida'" [attr.title]="article.isRead ? 'Lida' : 'Marcar como lida'">{{ article.isRead ? '✓' : '○' }}</button>
           <button class="favorite" [class.selected]="article.isFavorite" (click)="toggleFavorite(article, $event)" [attr.aria-label]="article.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'">★</button>
           <button class="hide-article" (click)="hideArticle(article, $event)" aria-label="Inibir notícia">⊘</button>
         </span>

@@ -1,0 +1,11 @@
+.stats-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 22px; }
+.stats-toolbar button { padding: 9px 12px; }
+.kicker { font: 500 .72rem 'DM Mono', monospace; letter-spacing: .12em; color: #68756a; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin: 28px 0 14px; background: #c9c7bd; border: 1px solid #c9c7bd; }
+.dashboard-stats > div { display: grid; gap: 6px; padding: 17px; background: #fffaf0; }
+.dashboard-stats strong { font-size: 1.8rem; }
+.message { min-height: 20px; color: #68756a; font-size: .85rem; }
+@media (max-width: 760px) {
+  .stats-toolbar { align-items: flex-start; flex-direction: column; }
+  .dashboard-stats { grid-template-columns: repeat(2, 1fr); }
+}

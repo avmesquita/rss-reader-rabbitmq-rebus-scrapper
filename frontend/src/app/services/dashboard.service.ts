@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Dashboard, DebugStatus } from '../models';
+import { Dashboard, DebugStatus, QueueMessage } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -13,5 +13,11 @@ export class DashboardService {
 
   getDebugStatus(): Observable<DebugStatus> {
     return this.http.get<DebugStatus>('/api/debug');
+  }
+
+  getQueueMessages(queueName: string): Observable<QueueMessage[]> {
+    return this.http.get<QueueMessage[]>(`/api/debug/queues/${encodeURIComponent(queueName)}/messages`, {
+      params: { limit: 50 }
+    });
   }
 }

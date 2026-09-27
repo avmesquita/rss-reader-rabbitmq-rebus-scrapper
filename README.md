@@ -60,12 +60,15 @@ Execução (docker compose up -d --build --scale rss_article_worker=2)
    ```
 4. Acesse os serviços:
    - Frontend: http://localhost:6660
+   - Frontend pelo Traefik: http://rss.lab.local
    - API/Swagger: http://localhost:6661/swagger
    - RabbitMQ Management: http://localhost:6664
    - pgAdmin: http://localhost:7771
    - Adminer: http://localhost:7772
 
 > O arquivo `.env` controla portas, credenciais, filas e ajustes de processamento. O Compose usa essas variáveis para conectar a API, os workers, o PostgreSQL e o RabbitMQ.
+
+> A rota `rss.lab.local` usa a rede Docker externa `lab-gateway` e o entrypoint HTTP `web` do Traefik. Antes de subir a stack, essa rede precisa existir (`docker network create lab-gateway`) e o nome `rss.lab.local` deve resolver para o host do Traefik na rede local. O acesso por `localhost` e pela porta configurada continua disponível.
 
 ## Arquitetura
 
@@ -134,7 +137,7 @@ Copie o arquivo `.env.example` para `.env` e ajuste os valores antes de iniciar 
 ### Ajustes de ingestão e processamento
 
 - `INGESTION_WORKERS`: número de workers Rebus na fila principal de feeds.
-- `INGESTION_INTERVAL_HOURS`: intervalo em horas entre execuções agendadas.
+- `INGESTION_INTERVAL_HOURS`: intervalo padrão em horas entre consultas de feeds. Cada fonte também pode definir seu próprio intervalo em minutos na aba Fontes; `0` usa este padrão global.
 - `INGESTION_SCHEDULER_ENABLED`: ativa ou desativa o agendamento automático de feeds.
 - `SCRAPPER_MAX_PARALLELISM`: paralelismo do scrapper por instância.
 - `ARTICLE_WORKERS`: número de workers da fila de artigos.
@@ -200,6 +203,10 @@ flowchart TD
 ```
 
 A consulta permite ordenar por data de publicação ou coleta e limitar o período por janela temporal, como 24 horas, 7 dias ou 30 dias.
+
+Na aba Fontes do dashboard é possível editar a descrição e o intervalo de consulta de cada feed. Intervalos maiores ajudam a reduzir respostas `429 Too Many Requests`. A tela distingue a última leitura, os artigos novos persistidos na rodada atual, a próxima consulta e o erro mais recente. Feeds RSS 0.92 ou sem versão declarada têm sua versão normalizada para compatibilidade com o leitor RSS 2.0.
+
+Na aba Telemetria, selecione uma fila para inspecionar até 50 mensagens sem removê-las da fila. Erros recentes da API também podem ser abertos para consulta. O acesso depende de `DEBUG_ENABLED` e deve ficar desativado em ambientes públicos.
 
 ## Operação e troubleshooting
 

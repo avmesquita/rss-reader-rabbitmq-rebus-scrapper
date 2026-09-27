@@ -11,7 +11,10 @@ header p { font: 500 .8rem 'DM Mono', monospace; margin: 0; }
 #google_translate_element { min-height: 28px; }
 .dashboard-trigger { padding: 10px 14px; }
 .install-trigger { padding: 10px 14px; background: #0b1d15; }
+.back-to-top { position: fixed; right: 24px; bottom: 24px; z-index: 1000; width: 52px; height: 52px; padding: 0; border-radius: 50%; box-shadow: 0 4px 16px rgb(11 29 21 / 25%); font-size: 1.6rem; line-height: 1; }
 .refresh-status { display: flex; align-items: center; gap: 9px; margin: 18px 0 0; color: #68756a; font: .75rem 'DM Mono', monospace; }
+.article-updates { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px; margin-top: 12px; padding: 7px 0; color: #68756a; font-size: .85rem; }
+.article-updates button { flex: 0 0 auto; padding: 9px 14px; background: #0b1d15; }
 .pulse { width: 7px; height: 7px; border-radius: 50%; background: #d94f35; box-shadow: 0 0 0 5px rgb(217 79 53 / 12%); }
 .toolbar { display: grid; grid-template-columns: minmax(180px, 1fr) auto repeat(3, minmax(130px, 180px)); gap: 10px; margin: 28px 0 34px; }
 input, select { width: 100%; border: 1px solid #aeb7aa; background: transparent; padding: 13px 15px; color: inherit; }
@@ -20,9 +23,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr); }
 .favorites-filter { grid-column: 1 / -1; justify-self: start; padding: 9px 14px; background: transparent; border: 1px solid #aeb7aa; color: #68756a; }
 .favorites-filter.active { color: #fffaf0; background: #d94f35; border-color: #d94f35; }
-.view-toggle { grid-column: 1 / -1; justify-self: end; display: flex; border: 1px solid #aeb7aa; }
-.view-toggle button { padding: 9px 14px; background: transparent; color: #68756a; }
-.view-toggle button.active { background: #0b1d15; color: #fffaf0; }
 @media (max-width: 760px) {
 	main { padding: 26px 18px 50px; }
 	header { align-items: start; gap: 20px; flex-direction: column; }
@@ -31,4 +31,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 	.layout { gap: 42px; }
 	.header-actions { justify-items: start; }
 	.language-tools { justify-items: start; }
+	.back-to-top { right: 16px; bottom: 16px; width: 48px; height: 48px; }
+	.article-updates { align-items: flex-start; flex-direction: column; }
 }

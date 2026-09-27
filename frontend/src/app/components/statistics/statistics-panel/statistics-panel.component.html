@@ -1,0 +1,14 @@
+<div class="stats-toolbar">
+  <span class="kicker">VISÃO GERAL</span>
+  <button (click)="refresh()" [disabled]="refreshing">{{ refreshing ? 'Atualizando...' : 'Atualizar estatísticas' }} ↻</button>
+</div>
+@if (dashboard; as data) {
+  <div class="dashboard-stats">
+    <div><strong>{{ data.stats.visibleArticles }}</strong><span>visíveis</span></div>
+    <div><strong>{{ data.stats.totalArticles }}</strong><span>coletadas</span></div>
+    <div><strong>{{ data.stats.favorites }}</strong><span>favoritas</span></div>
+    <div><strong>{{ data.stats.hiddenArticles }}</strong><span>inibidas</span></div>
+    <div><strong>{{ data.stats.readArticles }}</strong><span>lidas</span></div>
+  </div>
+}
+<p class="message" role="status">{{ message }}</p>

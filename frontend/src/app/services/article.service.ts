@@ -7,6 +7,7 @@ export interface ArticleQuery {
   page: number;
   pageSize: number;
   favoritesOnly: boolean;
+  readStatus: 'all' | 'read' | 'unread';
   periodHours: number;
   sort: string;
   search: string;
@@ -26,6 +27,7 @@ export class ArticleService {
       .set('sort', query.sort);
 
     if (query.periodHours > 0) params = params.set('periodHours', query.periodHours);
+    if (query.readStatus !== 'all') params = params.set('isRead', query.readStatus === 'read');
     if (query.search.trim()) params = params.set('search', query.search.trim());
     if (query.category !== 'Todas') params = params.set('category', query.category);
     if (query.feedId !== 'Todas') params = params.set('feedId', query.feedId);
@@ -41,6 +43,12 @@ export class ArticleService {
   hideArticle(article: Article): Observable<{ id: number; isHidden: boolean }> {
     return this.http.put<{ id: number; isHidden: boolean }>(
       `/api/articles/${article.id}/hidden`, { isHidden: true }
+    );
+  }
+
+  setRead(article: Article, isRead: boolean): Observable<{ id: number; isRead: boolean }> {
+    return this.http.put<{ id: number; isRead: boolean }>(
+      `/api/articles/${article.id}/read`, { isRead }
     );
   }
 }

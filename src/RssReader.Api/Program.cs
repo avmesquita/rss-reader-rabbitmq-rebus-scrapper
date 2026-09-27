@@ -45,6 +45,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS \"IX_Articles_UrlHash\";");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"IsFavorite\" boolean NOT NULL DEFAULT false;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"IsHidden\" boolean NOT NULL DEFAULT false;");
+    await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"IsRead\" boolean NOT NULL DEFAULT false;");
+    await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"IsDeleted\" boolean NOT NULL DEFAULT false;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"UrlHash\" text;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Articles\" ADD COLUMN IF NOT EXISTS \"TitleHash\" text;");
     var articlesWithoutIdentity = await db.Articles
@@ -65,6 +67,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"NextScheduledAt\" timestamptz;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"LastError\" text;");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"LastCollectedCount\" integer NOT NULL DEFAULT 0;");
+    await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"Description\" text;");
+    await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Feeds\" ADD COLUMN IF NOT EXISTS \"PollIntervalMinutes\" integer NOT NULL DEFAULT 0;");
     await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"IngestionRuns\" (\"Id\" uuid PRIMARY KEY, \"FeedId\" uuid NOT NULL, \"StartedAt\" timestamptz NOT NULL, \"CompletedAt\" timestamptz NULL, \"Status\" text NOT NULL, \"ItemCount\" integer NOT NULL DEFAULT 0, \"PersistedCount\" integer NOT NULL DEFAULT 0, \"ErrorCount\" integer NOT NULL DEFAULT 0, \"Error\" text NULL);");
     await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"IngestionRuns\" ADD COLUMN IF NOT EXISTS \"ProcessedCount\" integer NOT NULL DEFAULT 0;");
     await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS \"IX_IngestionRuns_FeedId_StartedAt\" ON \"IngestionRuns\" (\"FeedId\", \"StartedAt\");");
@@ -93,10 +97,11 @@ app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellat
     var feeds = await db.Feeds.AsNoTracking().OrderBy(feed => feed.Name).ToListAsync(cancellationToken);
     var stats = new
     {
-        totalArticles = await db.Articles.CountAsync(cancellationToken),
-        visibleArticles = await db.Articles.CountAsync(article => !article.IsHidden, cancellationToken),
-        hiddenArticles = await db.Articles.CountAsync(article => article.IsHidden, cancellationToken),
-        favorites = await db.Articles.CountAsync(article => article.IsFavorite && !article.IsHidden, cancellationToken)
+        totalArticles = await db.Articles.CountAsync(article => !article.IsDeleted, cancellationToken),
+        readArticles = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsRead, cancellationToken),
+        visibleArticles = await db.Articles.CountAsync(article => !article.IsDeleted && !article.IsHidden, cancellationToken),
+        hiddenArticles = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsHidden, cancellationToken),
+        favorites = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsFavorite && !article.IsHidden, cancellationToken)
     };
     return Results.Ok(new { stats, feeds });
 });
@@ -147,24 +152,54 @@ app.MapPost("/api/feeds", async (CreateFeedRequest request, AppDbContext db, IBu
 {
     if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
         return Results.BadRequest(new { error = "Informe uma URL HTTP ou HTTPS válida." });
+    if (request.PollIntervalMinutes is < 0 or > 10080 || request.PollIntervalMinutes is > 0 and < 30)
+        return Results.BadRequest(new { error = "O intervalo deve ser 0 (padrão global) ou entre 30 e 10080 minutos." });
 
-    var feed = new Feed { Id = Guid.NewGuid(), Name = request.Name.Trim(), Url = uri.ToString(), CreatedAt = DateTimeOffset.UtcNow };
+    var feed = new Feed { Id = Guid.NewGuid(), Name = request.Name.Trim(), Url = uri.ToString(), Description = request.Description?.Trim(), PollIntervalMinutes = request.PollIntervalMinutes ?? 0, CreatedAt = DateTimeOffset.UtcNow };
     db.Feeds.Add(feed);
     await db.SaveChangesAsync(cancellationToken);
     await bus.Send(new IngestFeedCommand(feed.Id, feed.Url, Guid.NewGuid()));
     return Results.Created($"/api/feeds/{feed.Id}", feed);
 });
 
-app.MapPost("/api/feeds/{id:guid}/refresh", async (Guid id, AppDbContext db, IBus bus, CancellationToken cancellationToken) =>
+app.MapPut("/api/feeds/{id:guid}", async (Guid id, UpdateFeedRequest request, AppDbContext db, IConfiguration config, CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name))
+        return Results.BadRequest(new { error = "O nome da fonte é obrigatório." });
+    if (request.PollIntervalMinutes is < 0 or > 10080 || request.PollIntervalMinutes is > 0 and < 30)
+        return Results.BadRequest(new { error = "O intervalo deve ser 0 (padrão global) ou entre 30 e 10080 minutos." });
+
+    var feed = await db.Feeds.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+    if (feed is null)
+        return Results.NotFound();
+
+    feed.Name = request.Name.Trim();
+    feed.Description = request.Description?.Trim();
+    feed.PollIntervalMinutes = request.PollIntervalMinutes;
+    if (feed.LastCheckedAt.HasValue)
+    {
+        var interval = feed.PollIntervalMinutes > 0
+            ? TimeSpan.FromMinutes(feed.PollIntervalMinutes)
+            : TimeSpan.FromHours(Math.Max(1, config.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
+        feed.NextScheduledAt = feed.LastCheckedAt.Value.Add(interval);
+    }
+    await db.SaveChangesAsync(cancellationToken);
+    return Results.Ok(feed);
+});
+
+app.MapPost("/api/feeds/{id:guid}/refresh", async (Guid id, AppDbContext db, IBus bus, IConfiguration config, CancellationToken cancellationToken) =>
 {
     var feed = await db.Feeds.SingleOrDefaultAsync(item => item.Id == id && item.IsActive, cancellationToken);
     if (feed is null)
         return Results.NotFound();
 
-    var elapsed = feed.LastCheckedAt.HasValue ? DateTimeOffset.UtcNow - feed.LastCheckedAt.Value : TimeSpan.FromMinutes(30);
-    if (elapsed < TimeSpan.FromMinutes(30))
+    var minimumInterval = feed.PollIntervalMinutes > 0
+        ? TimeSpan.FromMinutes(feed.PollIntervalMinutes)
+        : TimeSpan.FromHours(Math.Max(1, config.GetValue<int?>("Ingestion:IntervalHours") ?? 2));
+    var elapsed = feed.LastCheckedAt.HasValue ? DateTimeOffset.UtcNow - feed.LastCheckedAt.Value : minimumInterval;
+    if (elapsed < minimumInterval)
     {
-        var retryAfterSeconds = (int)Math.Ceiling((TimeSpan.FromMinutes(30) - elapsed).TotalSeconds);
+        var retryAfterSeconds = (int)Math.Ceiling((minimumInterval - elapsed).TotalSeconds);
         return Results.Problem(
             detail: $"A fonte poderá ser atualizada novamente em {Math.Ceiling(retryAfterSeconds / 60d):0} minutos.",
             statusCode: StatusCodes.Status429TooManyRequests,
@@ -188,7 +223,7 @@ app.MapDelete("/api/feeds/{id:guid}", async (Guid id, AppDbContext db, Cancellat
     return Results.NoContent();
 });
 
-app.MapGet("/api/articles", async (AppDbContext db, string? search, string? category, Guid? feedId, bool favoritesOnly, int? periodHours, string? sort, int? page, int? pageSize, CancellationToken cancellationToken) =>
+app.MapGet("/api/articles", async (AppDbContext db, string? search, string? category, Guid? feedId, bool favoritesOnly, bool? isRead, int? periodHours, string? sort, int? page, int? pageSize, CancellationToken cancellationToken) =>
 {
     var query = from article in db.Articles.AsNoTracking()
                 join feed in db.Feeds.AsNoTracking() on article.FeedId equals feed.Id
@@ -206,13 +241,15 @@ app.MapGet("/api/articles", async (AppDbContext db, string? search, string? cate
             || EF.Functions.ILike(item.feed.Name, pattern));
     }
 
-    query = query.Where(item => !item.article.IsHidden);
+    query = query.Where(item => !item.article.IsHidden && !item.article.IsDeleted);
     if (!string.IsNullOrWhiteSpace(category) && !category.Equals("Todas", StringComparison.OrdinalIgnoreCase))
         query = query.Where(item => (item.article.Category ?? "Geral") == category);
     if (feedId.HasValue)
         query = query.Where(item => item.article.FeedId == feedId.Value);
     if (favoritesOnly)
         query = query.Where(item => item.article.IsFavorite);
+    if (isRead.HasValue)
+        query = query.Where(item => item.article.IsRead == isRead.Value);
     if (periodHours is > 0)
         query = query.Where(item => item.article.CollectedAt >= DateTimeOffset.UtcNow.AddHours(-periodHours.Value));
 
@@ -230,7 +267,7 @@ app.MapGet("/api/articles", async (AppDbContext db, string? search, string? cate
         .ToListAsync(cancellationToken);
 
     var categories = await db.Articles.AsNoTracking()
-        .Where(article => !article.IsHidden)
+        .Where(article => !article.IsHidden && !article.IsDeleted)
         .Select(article => article.Category ?? "Geral")
         .Distinct()
         .OrderBy(item => item)
@@ -253,6 +290,7 @@ app.MapGet("/api/articles", async (AppDbContext db, string? search, string? cate
         item.article.Category,
         item.article.IsFavorite,
         item.article.IsHidden,
+        item.article.IsRead,
         item.article.PublishedAt,
         item.article.CollectedAt)),
         totalCount,
@@ -276,17 +314,38 @@ app.MapGet("/api/debug", async (IConfiguration config, ApiDiagnostics diagnostic
     });
 });
 
+app.MapGet("/api/debug/queues/{queueName}/messages", async (string queueName, IConfiguration config, RabbitDiagnostics rabbit, int? limit, CancellationToken cancellationToken) =>
+{
+    if (!config.GetValue<bool>("Debug:Enabled"))
+        return Results.NotFound();
+    try
+    {
+        return Results.Ok(await rabbit.GetMessagesAsync(queueName, limit ?? 50, cancellationToken));
+    }
+    catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or InvalidOperationException)
+    {
+        return Results.Problem("Não foi possível consultar as mensagens da fila.", statusCode: StatusCodes.Status502BadGateway);
+    }
+});
+
 app.MapDelete("/api/system/purge", async (IConfiguration config, AppDbContext db, CancellationToken cancellationToken) =>
 {
     if (!config.GetValue<bool>("Debug:Enabled"))
         return Results.NotFound();
 
     var cutoffDate = DateTimeOffset.UtcNow.AddDays(-30);
+    var before = new
+    {
+        all = await db.Articles.CountAsync(article => !article.IsDeleted, cancellationToken),
+        read = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsRead, cancellationToken),
+        hidden = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsHidden, cancellationToken),
+        favorites = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsFavorite, cancellationToken)
+    };
 
     // Executa a deleção em lote direto no banco (sem trazer dados pra memória)
     // O retorno é o total exato de linhas afetadas.
     var purgedArticles = await db.Articles
-        .Where(a => a.PublishedAt < cutoffDate && !a.IsFavorite)
+        .Where(a => a.PublishedAt < cutoffDate && !a.IsFavorite && !a.IsDeleted)
         .ExecuteDeleteAsync(cancellationToken);
 
     // Se precisar expurgar logs/erros velhos na mesma regra:
@@ -294,12 +353,61 @@ app.MapDelete("/api/system/purge", async (IConfiguration config, AppDbContext db
         .Where(e => e.CreatedAt < cutoffDate)
         .ExecuteDeleteAsync(cancellationToken);
 
+    var after = new
+    {
+        all = await db.Articles.CountAsync(article => !article.IsDeleted, cancellationToken),
+        read = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsRead, cancellationToken),
+        hidden = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsHidden, cancellationToken),
+        favorites = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsFavorite, cancellationToken)
+    };
+
     return Results.Ok(new
     {
         purgedArticles,
         purgedErrors,
+        before,
+        after,
         purgedAt = DateTimeOffset.UtcNow
     });
+});
+
+app.MapDelete("/api/system/read-articles", async (IConfiguration config, AppDbContext db, CancellationToken cancellationToken) =>
+{
+    if (!config.GetValue<bool>("Debug:Enabled"))
+        return Results.NotFound();
+
+    var before = new
+    {
+        all = await db.Articles.CountAsync(article => !article.IsDeleted, cancellationToken),
+        read = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsRead, cancellationToken),
+        hidden = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsHidden, cancellationToken),
+        favorites = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsFavorite, cancellationToken)
+    };
+
+    var deletedArticles = await db.Articles
+        .Where(article => !article.IsDeleted && article.IsRead && !article.IsFavorite)
+        .ExecuteUpdateAsync(update => update
+            .SetProperty(article => article.IsDeleted, true)
+            .SetProperty(article => article.Title, "Artigo removido")
+            .SetProperty(article => article.Url, "")
+            .SetProperty(article => article.Author, (string?)null)
+            .SetProperty(article => article.Excerpt, (string?)null)
+            .SetProperty(article => article.ContentHtml, (string?)null)
+            .SetProperty(article => article.ContentText, (string?)null)
+            .SetProperty(article => article.ImageUrl, (string?)null)
+            .SetProperty(article => article.ImageBase64, (string?)null)
+            .SetProperty(article => article.ImageMimeType, (string?)null)
+            .SetProperty(article => article.Category, (string?)null), cancellationToken);
+
+    var after = new
+    {
+        all = await db.Articles.CountAsync(article => !article.IsDeleted, cancellationToken),
+        read = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsRead, cancellationToken),
+        hidden = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsHidden, cancellationToken),
+        favorites = await db.Articles.CountAsync(article => !article.IsDeleted && article.IsFavorite, cancellationToken)
+    };
+
+    return Results.Ok(new { deletedArticles, before, after, deletedAt = DateTimeOffset.UtcNow });
 });
 
 app.MapPut("/api/articles/{id:long}/favorite", async (long id, FavoriteRequest request, AppDbContext db, CancellationToken cancellationToken) =>
@@ -324,12 +432,25 @@ app.MapPut("/api/articles/{id:long}/hidden", async (long id, HiddenRequest reque
     return Results.Ok(new { article.Id, article.IsHidden });
 });
 
+app.MapPut("/api/articles/{id:long}/read", async (long id, ReadRequest request, AppDbContext db, CancellationToken cancellationToken) =>
+{
+    var article = await db.Articles.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+    if (article is null)
+        return Results.NotFound();
+
+    article.IsRead = request.IsRead;
+    await db.SaveChangesAsync(cancellationToken);
+    return Results.Ok(new { article.Id, article.IsRead });
+});
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
 
-public sealed record CreateFeedRequest(string Name, string Url);
+public sealed record CreateFeedRequest(string Name, string Url, string? Description = null, int? PollIntervalMinutes = null);
+public sealed record UpdateFeedRequest(string Name, string? Description, int PollIntervalMinutes);
 public sealed record FavoriteRequest(bool IsFavorite);
 public sealed record HiddenRequest(bool IsHidden);
+public sealed record ReadRequest(bool IsRead);
 public sealed record ArticleResponse(
     long Id,
     Guid FeedId,
@@ -346,6 +467,7 @@ public sealed record ArticleResponse(
     string? Category,
     bool IsFavorite,
     bool IsHidden,
+    bool IsRead,
     DateTimeOffset? PublishedAt,
     DateTimeOffset CollectedAt);
 public sealed record ArticlePageResponse(

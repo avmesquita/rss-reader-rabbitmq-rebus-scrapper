@@ -11,8 +11,12 @@ export class FeedService {
     return this.http.get<Feed[]>('/api/feeds');
   }
 
-  createFeed(name: string, url: string): Observable<Feed> {
-    return this.http.post<Feed>('/api/feeds', { name, url });
+  createFeed(name: string, url: string, description: string, pollIntervalMinutes: number): Observable<Feed> {
+    return this.http.post<Feed>('/api/feeds', { name, url, description, pollIntervalMinutes });
+  }
+
+  updateFeed(feed: Feed, name: string, description: string, pollIntervalMinutes: number): Observable<Feed> {
+    return this.http.put<Feed>(`/api/feeds/${feed.id}`, { name, description, pollIntervalMinutes });
   }
 
   refreshFeed(feedId: string): Observable<void> {
