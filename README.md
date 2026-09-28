@@ -89,6 +89,15 @@ flowchart LR
 - Camada de processamento: feed worker e article worker, responsáveis pela leitura dos feeds, publicação dos itens e extração do conteúdo completo.
 - Camada de persistência: PostgreSQL, responsável pelo armazenamento das fontes, metadados e artigos extraídos.
 
+#### Organização interna da API
+
+- `Controllers`: endpoints HTTP e tradução dos resultados para respostas HTTP.
+- `Services`: regras de aplicação e coordenação de operações, como validação de intervalos e atualização de artigos.
+- `Repositories`: consultas e gravações das entidades via EF Core.
+- `Domain.cs` e `ApiContracts.cs`: entidades persistidas e contratos usados pela API.
+
+O `Program.cs` configura dependências, middleware, mensageria e a rota de saúde. `DatabaseInitializer` mantém a criação do schema e os ajustes SQL de compatibilidade executados na inicialização da API.
+
 ### Fluxo operacional
 
 1. O usuário cadastra ou atualiza uma fonte na API.
