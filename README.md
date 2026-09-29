@@ -126,10 +126,10 @@ Copie o arquivo `.env.example` para `.env` e ajuste os valores antes de iniciar 
 - `RABBITMQ_ARTICLE_QUEUE`: fila dedicada ao processamento de artigos e extração do scrapper.
 - `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`: credenciais do pgAdmin.
 - `DEBUG_ENABLED`: habilita o painel operacional e endpoints de debug na API. Deve permanecer desligado em ambientes públicos.
-- `WRITE_ACCESS_PASSWORD`: senha para liberar operações de escrita na plataforma. É obrigatória para criar, editar, excluir, favoritar, marcar como lida ou inibir notícias. Sem ela, a API bloqueia escritas.
-- `CONTACT_EMAIL`: endereço mostrado no convite para contratar hospedagem do portal.
+- `FIREBASE_PROJECT_ID`: projeto Firebase usado pela API para verificar tokens de autenticação.
+- `FIREBASE_ALLOWED_UID`: UID do único usuário Firebase autorizado a criar, editar, excluir ou atualizar dados pela API.
 
-O conteúdo e a leitura das notícias permanecem públicos. Ao tentar uma operação protegida, o portal solicita a senha e a mantém válida por até 12 horas na sessão atual do navegador. A API valida um token assinado em cada operação de escrita, portanto o bloqueio também vale para chamadas diretas. Configure `WRITE_ACCESS_PASSWORD` com uma senha longa e exclusiva e publique o portal com HTTPS.
+O conteúdo e a leitura das notícias permanecem públicos. A API exige um Firebase ID token em toda operação de escrita e confere no servidor se o UID autenticado corresponde exatamente a `FIREBASE_ALLOWED_UID`. Usuários autenticados diferentes recebem HTTP 403; token ausente ou inválido recebe HTTP 401. Se o projeto ou UID não estiver configurado, escritas falham fechadas com HTTP 503. Copie o UID do usuário em Firebase Authentication e configure as duas variáveis no ambiente da API; publique o frontend por HTTPS.
 
 ### Ajustes de ingestão e processamento
 
@@ -142,6 +142,14 @@ O conteúdo e a leitura das notícias permanecem públicos. Ao tentar uma opera�
 - `IMAGE_MAX_BYTES`: limite máximo em bytes para imagens aceitas antes do descarte.
 
 > Em geral, não altere `POSTGRES_HOST`, `RABBITMQ_HOST` e `SCRAPPER_HOST` sem ajustar também o `docker-compose.yml`; esses nomes são usados pela rede interna do Compose e pelos serviços que se conectam entre si.
+
+### Frontend Firebase e importação do YouTube
+
+O frontend padrão continua sendo público. A variação para Firebase é gerada com `cd frontend && npm run build:firebase` e publicada no Firebase Hosting. Antes de compilar, preencha `src/environments/environment.firebase.ts` com a configuração web do projeto Firebase e a URL pública da API em `apiBaseUrl`. Esses valores identificam o projeto cliente e não são credenciais de serviço. Ative Google em Authentication, crie o Firestore, cadastre o domínio do Hosting em Authorized domains, habilite a YouTube Data API v3 no projeto Google Cloud e configure a tela de consentimento OAuth.
+
+Na API, configure `FIREBASE_PROJECT_ID` e `FIREBASE_ALLOWED_UID` com o ID do projeto e o UID autorizado. A API verifica o Firebase ID token em toda operação de escrita e só permite o UID configurado; não é necessário instalar uma chave de conta de serviço para verificar os tokens. A pessoa autoriza separadamente o escopo `youtube.readonly`; o frontend lê a lista paginada pela YouTube Data API e envia apenas IDs e nomes de canais à API. A API valida os IDs, cria os feeds RSS oficiais do YouTube e publica `IngestFeedCommand` para o worker existente.
+
+O Firestore grava um registro da ação de importação em `users/{uid}/actions`. As regras em `frontend/firestore.rules` permitem que cada pessoa consulte e crie apenas seus próprios registros. Os feeds e artigos continuam no PostgreSQL compartilhado desta versão; portanto, a importação cria fontes visíveis no portal compartilhado. Para hosting, publique as regras e a aplicação com `firebase deploy --only firestore:rules,hosting` dentro de `frontend`.
 
 ## Fluxos de processamento
 

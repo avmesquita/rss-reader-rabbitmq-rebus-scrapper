@@ -91,9 +91,4 @@ app-article-dialog .formatted-content img {
 :root[data-theme='dark'] .pagination button:hover:not(:disabled) { background: #354139; border-color: #718275; }
 :root[data-theme='dark'] .pagination button:disabled { color: #7e8a80; background: #1b211d; border-color: #354139; }
 :root[data-theme='dark'] .pagination select { color: #e8ece5; background: #202822; border-color: #526055; }
-:root[data-theme='dark'] .write-access-dialog { color: #e8ece5; background: #202822; border-color: #526055; }
-:root[data-theme='dark'] .write-access-dialog > p,
-:root[data-theme='dark'] .write-access-dialog form label { color: #b4c0b5; }
-:root[data-theme='dark'] .write-access-dialog form input { color: #e8ece5; background: #151a17; border-color: #526055; }
-:root[data-theme='dark'] .access-actions .access-cancel { color: #c2cdc3; border-color: #526055; }
 :root[data-theme='dark'] .paging { color: black; border-color: #526055; background: #e8ece5; }

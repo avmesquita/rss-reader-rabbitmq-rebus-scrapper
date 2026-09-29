@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using FirebaseAdmin;
+using FirebaseAdmin.Auth;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Routing.TypeBased;
@@ -18,7 +20,12 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 builder.Services.AddScoped<FeedService>();
 builder.Services.AddScoped<ArticleService>();
 builder.Services.AddSingleton<ApiDiagnostics>();
-builder.Services.AddSingleton<WriteAccessService>();
+var firebaseProjectId = configuration["Firebase:ProjectId"];
+if (!string.IsNullOrWhiteSpace(firebaseProjectId))
+{
+    var firebaseApp = FirebaseApp.Create(new AppOptions { ProjectId = firebaseProjectId }, "rss-reader-auth");
+    builder.Services.AddSingleton(FirebaseAuth.GetAuth(firebaseApp));
+}
 builder.Services.AddHttpClient<RabbitDiagnostics>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -50,26 +57,43 @@ app.Use(async (context, next) =>
             || HttpMethods.IsPut(context.Request.Method)
             || HttpMethods.IsPatch(context.Request.Method)
             || HttpMethods.IsDelete(context.Request.Method));
-    var isUnlockRequest = path.Equals("/api/access/unlock", StringComparison.OrdinalIgnoreCase);
-
-    if (!isApiWrite || isUnlockRequest)
+    if (!isApiWrite)
     {
         await next();
         return;
     }
 
-    var access = context.RequestServices.GetRequiredService<WriteAccessService>();
-    if (!access.IsConfigured)
+    var allowedUid = configuration["Firebase:AllowedUid"];
+    var firebaseAuth = context.RequestServices.GetService<FirebaseAuth>();
+    if (string.IsNullOrWhiteSpace(firebaseProjectId) || string.IsNullOrWhiteSpace(allowedUid) || firebaseAuth is null)
     {
         await Results.Problem(
-            "O acesso de escrita não foi configurado pelo administrador.",
+            "A autenticação Firebase e o usuário autorizado não foram configurados pela administração.",
             statusCode: StatusCodes.Status503ServiceUnavailable).ExecuteAsync(context);
         return;
     }
 
-    if (!access.ValidateToken(context.Request.Headers["X-Write-Token"].FirstOrDefault()))
+    var authorization = context.Request.Headers.Authorization.ToString();
+    if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) || authorization.Length <= 7)
     {
         await Results.Unauthorized().ExecuteAsync(context);
+        return;
+    }
+
+    FirebaseToken firebaseToken;
+    try
+    {
+        firebaseToken = await firebaseAuth.VerifyIdTokenAsync(authorization[7..], context.RequestAborted);
+    }
+    catch (FirebaseAuthException)
+    {
+        await Results.Unauthorized().ExecuteAsync(context);
+        return;
+    }
+
+    if (!string.Equals(firebaseToken.Uid, allowedUid, StringComparison.Ordinal))
+    {
+        await Results.StatusCode(StatusCodes.Status403Forbidden).ExecuteAsync(context);
         return;
     }
 

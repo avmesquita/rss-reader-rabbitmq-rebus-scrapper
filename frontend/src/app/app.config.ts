@@ -5,13 +5,13 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideServiceWorker } from '@angular/service-worker';
 
 import { routes } from './app.routes';
-import { writeAccessInterceptor } from './services/write-access.interceptor';
+import { firebaseAuthInterceptor } from './services/firebase-auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideHttpClient(withInterceptors([writeAccessInterceptor])),
+    provideHttpClient(withInterceptors([firebaseAuthInterceptor])),
     provideAnimationsAsync(),
     provideRouter(routes),
     provideServiceWorker('ngsw-worker.js', {

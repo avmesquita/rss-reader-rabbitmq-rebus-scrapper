@@ -5,7 +5,6 @@ public sealed record UpdateFeedRequest(string Name, string? Description, int Pol
 public sealed record FavoriteRequest(bool IsFavorite);
 public sealed record HiddenRequest(bool IsHidden);
 public sealed record ReadRequest(bool IsRead);
-public sealed record UnlockRequest(string? Password);
 public sealed record ArticleResponse(
     long Id,
     Guid FeedId,

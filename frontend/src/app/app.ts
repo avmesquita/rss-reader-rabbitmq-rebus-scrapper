@@ -1,6 +1,5 @@
 import { Component, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ArticleDialogComponent } from './components/dialogs/article-dialog/article-dialog.component';
 import { ArticleListComponent } from './components/dialogs/article-list/article-list.component';
@@ -9,8 +8,8 @@ import { Article, Feed } from './models';
 import { ArticleQuery, ArticleService } from './services/article.service';
 import { FeedService } from './services/feed.service';
 import { MatButtonModule } from '@angular/material/button';
-import { WriteAccessService } from './services/write-access.service';
-import { WriteAccessSessionService } from './services/write-access-session.service';
+import { FirebaseService } from './services/firebase.service';
+import { YoutubeImportService } from './services/youtube-import.service';
 
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -43,8 +42,10 @@ export class App implements OnInit, OnDestroy {
   private readonly articleService = inject(ArticleService);
   private readonly feedService = inject(FeedService);
   private readonly dialog = inject(MatDialog);
-  protected readonly writeAccess = inject(WriteAccessService);
-  protected readonly writeSession = inject(WriteAccessSessionService);
+  protected readonly firebase = inject(FirebaseService);
+  private readonly youtubeImport = inject(YoutubeImportService);
+  protected firebaseMessage = '';
+  protected importingYoutube = false;
   protected articles: Article[] = [];
   protected feeds: Feed[] = [];
   protected search = '';
@@ -67,17 +68,39 @@ export class App implements OnInit, OnDestroy {
   protected showBackToTop = false;
   protected newStoriesAvailable = 0;
   protected updatingArticles = false;
-  protected accessPromptOpen = false;
-  protected accessPassword = '';
-  protected accessError = '';
-  protected unlockingAccess = false;
-  private pendingWriteAction?: () => void;
-  private accessSubscription?: Subscription;
   private refreshTimer?: ReturnType<typeof setInterval>;
   private newStoriesTimer?: ReturnType<typeof setInterval>;
   private knownAllArticleCount: number | null = null;
 
   protected readonly pageSizes = [10, 25, 50, 100];
+
+  protected async signInWithGoogle(): Promise<void> {
+    try {
+      const user = await this.firebase.signIn();
+      this.firebaseMessage = `Conectado como ${user.email ?? user.displayName ?? 'usuário Google'}.`;
+    } catch (error) {
+      this.firebaseMessage = error instanceof Error ? error.message : 'Não foi possível entrar com Google.';
+    }
+  }
+
+  protected async signOutFirebase(): Promise<void> {
+    await this.firebase.signOut();
+    this.firebaseMessage = 'Sessão encerrada.';
+  }
+
+  protected async importYoutubeSubscriptions(): Promise<void> {
+    this.importingYoutube = true;
+    this.firebaseMessage = 'Consultando suas inscrições do YouTube...';
+    try {
+      const count = await this.youtubeImport.importSubscriptions();
+      this.firebaseMessage = `${count} canais enviados para inclusão nas histórias.`;
+      this.loadFeeds();
+    } catch (error) {
+      this.firebaseMessage = error instanceof Error ? error.message : 'Não foi possível importar as inscrições.';
+    } finally {
+      this.importingYoutube = false;
+    }
+  }
 
   @HostListener('window:beforeinstallprompt', ['$event'])
   captureInstallPrompt(event: Event): void {
@@ -129,12 +152,6 @@ export class App implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.restoreViewState();
     this.applyAppearance();
-    this.writeAccess.refreshStatus();
-    this.accessSubscription = this.writeSession.reauthenticationRequested.subscribe(() => {
-      this.accessError = 'A autorização expirou. Digite a senha novamente para continuar.';
-      this.accessPromptOpen = true;
-      this.accessPassword = '';
-    });
     this.load();
     this.refreshTimer = setInterval(() => this.updateRefreshCountdown(), 1000);
     this.checkForNewStories(true);
@@ -146,7 +163,6 @@ export class App implements OnInit, OnDestroy {
       clearInterval(this.refreshTimer);
     if (this.newStoriesTimer)
       clearInterval(this.newStoriesTimer);
-    this.accessSubscription?.unsubscribe();
   }
 
   protected load(): void {
@@ -167,46 +183,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected requestDashboard(): void {
-    this.runWithWriteAccess(() => this.openDashboard());
-  }
-
-  protected unlockWriteAccess(): void {
-    if (this.unlockingAccess || !this.accessPassword.trim())
-      return;
-
-    this.unlockingAccess = true;
-    this.accessError = '';
-    this.writeAccess.unlock(this.accessPassword).subscribe({
-      next: () => {
-        this.unlockingAccess = false;
-        this.accessPromptOpen = false;
-        this.accessPassword = '';
-        const action = this.pendingWriteAction;
-        this.pendingWriteAction = undefined;
-        action?.();
-      },
-      error: error => {
-        this.unlockingAccess = false;
-        this.accessError = error.status === 401 ? 'Senha incorreta.' : 'Não foi possível validar a senha.';
-      }
-    });
-  }
-
-  protected cancelWriteAccess(): void {
-    this.accessPromptOpen = false;
-    this.accessPassword = '';
-    this.accessError = '';
-    this.pendingWriteAction = undefined;
-  }
-
-  private runWithWriteAccess(action: () => void): void {
-    if (this.writeSession.authorized()) {
-      action();
-      return;
-    }
-    this.pendingWriteAction = action;
-    this.accessPromptOpen = true;
-    this.accessError = '';
+    this.openDashboard();
   }
 
   private loadFeeds(): void {
@@ -397,10 +374,6 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected toggleFavorite(article: Article): void {
-    if (!this.writeSession.authorized()) {
-      this.runWithWriteAccess(() => this.toggleFavorite(article));
-      return;
-    }
     const isFavorite = !article.isFavorite;
     this.articleService.setFavorite(article, isFavorite).subscribe({
       next: result => article.isFavorite = result.isFavorite,
@@ -409,10 +382,6 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected toggleRead(article: Article): void {
-    if (!this.writeSession.authorized()) {
-      this.runWithWriteAccess(() => this.toggleRead(article));
-      return;
-    }
     this.articleService.setRead(article, !article.isRead).subscribe({
       next: result => {
         article.isRead = result.isRead;
@@ -424,10 +393,6 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected hideArticle(article: Article): void {
-    if (!this.writeSession.authorized()) {
-      this.runWithWriteAccess(() => this.hideArticle(article));
-      return;
-    }
     this.articleService.hideArticle(article).subscribe({
       next: () => {
         this.loadArticles();

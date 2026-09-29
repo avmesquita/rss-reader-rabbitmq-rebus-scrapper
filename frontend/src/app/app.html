@@ -4,6 +4,15 @@
     <div><span class="kicker">RSS READER</span><h1>Leituras em movimento.</h1></div>
     <div class="header-actions">
       <p>{{ totalCount }} histórias visíveis</p>
+      @if (firebase.enabled) {
+        @if (firebase.currentUser; as user) {
+          <span class="firebase-user">{{ user.email }}</span>
+          <button type="button" (click)="importYoutubeSubscriptions()" [disabled]="importingYoutube">{{ importingYoutube ? 'Importando inscrições...' : 'Importar inscrições do YouTube' }}</button>
+          <button type="button" (click)="signOutFirebase()">Sair</button>
+        } @else {
+          <button type="button" (click)="signInWithGoogle()">Entrar com Google</button>
+        }
+      }
       <div class="appearance-tools" aria-label="Aparência da página">
         <div class="zoom-control" role="group" aria-label="Tamanho da interface">
           <button type="button" (click)="adjustZoom(-10)" [disabled]="zoomLevel <= 70" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
@@ -19,6 +28,8 @@
       <button class="dashboard-trigger" (click)="requestDashboard()">Dashboard <span aria-hidden="true">↗</span></button>
     </div>
   </header>
+
+  @if (firebase.enabled && firebaseMessage) { <p class="firebase-message" role="status">{{ firebaseMessage }}</p> }
 
   <div class="refresh-status"><span class="pulse"></span>{{ refreshLabel }} <span>·</span> última leitura registrada por fonte</div>
 
@@ -89,35 +100,6 @@
   </footer>
 </main>
 
-@if (accessPromptOpen) {
-  <div class="write-access-overlay">
-    <section class="write-access-dialog" role="dialog" aria-modal="true" aria-labelledby="write-access-title">
-      <span class="kicker">ÁREA DE EDIÇÃO</span>
-      <h2 id="write-access-title">A leitura é pública. As alterações são protegidas.</h2>
-      <p>Informe a senha de administração para continuar com esta ação.</p>
-      @if (!writeAccess.statusLoaded()) {
-        <p class="access-status">Verificando a configuração de acesso...</p>
-      } @else if (writeAccess.statusUnavailable()) {
-        <p class="access-error" role="alert">Não foi possível consultar a configuração. Tente recarregar a página.</p>
-      } @else if (!writeAccess.configured()) {
-        <p class="access-error" role="alert">O acesso de edição ainda não foi configurado pelo administrador.</p>
-      } @else {
-        <form (ngSubmit)="unlockWriteAccess()">
-          <label for="write-access-password">Senha</label>
-          <input id="write-access-password" name="writeAccessPassword" type="password" [(ngModel)]="accessPassword" autocomplete="current-password" required autofocus />
-          @if (accessError) { <p class="access-error" role="alert">{{ accessError }}</p> }
-          <div class="access-actions">
-            <button type="submit" [disabled]="unlockingAccess || !accessPassword.trim()">{{ unlockingAccess ? 'Verificando...' : 'Desbloquear edição' }}</button>
-            <button type="button" class="access-cancel" (click)="cancelWriteAccess()">Continuar lendo</button>
-          </div>
-        </form>
-      }
-      @if (writeAccess.contactEmail(); as contactEmail) {
-        <a class="hosting-contact" [href]="'mailto:' + contactEmail + '?subject=Hospedagem%20do%20RSS%20Reader'">Quer hospedar seu próprio portal? Fale comigo <span aria-hidden="true">↗</span></a>
-      }
-    </section>
-  </div>
-}
 @if (showBackToTop) {
   <button class="back-to-top" (click)="scrollToTop()" aria-label="Voltar ao topo" title="Voltar ao topo">↑</button>
 }
