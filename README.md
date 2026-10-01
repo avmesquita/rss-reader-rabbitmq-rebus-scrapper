@@ -37,11 +37,14 @@ Telemetria
    ```bash
    cp .env.example .env
    ```
+
 2. Ajuste as credenciais, portas e parâmetros de infraestrutura conforme o ambiente local ou de homologação.
+
 3. Suba a stack:
    ```bash
    docker compose up -d --build --scale rss_article_worker=4
    ```
+   
 4. Acesse os serviços:
    - Frontend: http://localhost:6660
    - Frontend pelo Traefik: http://rss.lab.local
