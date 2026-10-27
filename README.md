@@ -324,8 +324,8 @@ Imagens publicadas:
 - `avmesquita/rss-reader-frontend`
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 O workflow publica as três imagens com as tags `1.0.0`, `1.0`, `1` e uma tag baseada no commit. A tag `latest` continua sendo atualizada somente pela branch padrão.
