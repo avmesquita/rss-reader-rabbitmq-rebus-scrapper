@@ -1,7 +1,5 @@
 # RSS Reader | Leituras em Movimento.
 
----
-
 O projeto combina uma API ASP.NET Core, um worker de ingestão, um worker dedicado a artigos e uma camada de apresentação em Angular. A solução foi desenhada para separar duas responsabilidades bem definidas:
 
 - leitura e agendamento dos feeds RSS/Atom
