@@ -1,11 +1,5 @@
 # RSS Reader | Leituras em Movimento.
 
-[![CI](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/ci.yml)
-
-[![Docker Images](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/docker.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/docker.yml)
-
-[![Pages](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/pages.yml/badge.svg)](https://github.com/avmesquita/rss-reader-rabbitmq-rebus-scrapper/actions/workflows/pages.yml)
-
 ---
 
 O projeto combina uma API ASP.NET Core, um worker de ingestão, um worker dedicado a artigos e uma camada de apresentação em Angular. A solução foi desenhada para separar duas responsabilidades bem definidas:
